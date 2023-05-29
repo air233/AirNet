@@ -1,0 +1,3 @@
+/home/lvss/code/server/build/CMakeFiles/rebuild_cache.dir
+/home/lvss/code/server/build/CMakeFiles/edit_cache.dir
+/home/lvss/code/server/build/CMakeFiles/main.dir
