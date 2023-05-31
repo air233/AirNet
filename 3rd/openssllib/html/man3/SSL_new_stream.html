@@ -1,0 +1,74 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>SSL_new_stream</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:" />
+</head>
+
+<body>
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+  <li><a href="#RETURN-VALUES">RETURN VALUES</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+  <li><a href="#HISTORY">HISTORY</a></li>
+  <li><a href="#COPYRIGHT">COPYRIGHT</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>SSL_new_stream, SSL_STREAM_FLAG_UNI - create a new locally-initiated QUIC stream</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>#include &lt;openssl/ssl.h&gt;
+
+#define SSL_STREAM_FLAG_UNI     (1U &lt;&lt; 0)
+SSL *SSL_new_stream(SSL *ssl, uint64_t flags);</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>The SSL_new_stream() function, when passed a QUIC connection SSL object, creates a new locally-initiated bidirectional or unidirectional QUIC stream and returns the newly created QUIC stream SSL object.</p>
+
+<p>If the <b>SSL_STREAM_FLAG_UNI</b> flag is passed, a unidirectional stream is created; else a bidirectional stream is created.</p>
+
+<p>To retrieve the stream ID of the newly created stream, use <a href="../man3/SSL_get_stream_id.html">SSL_get_stream_id(3)</a>.</p>
+
+<p>It is the caller&#39;s responsibility to free the QUIC stream SSL object using <a href="../man3/SSL_free.html">SSL_free(3)</a>. The lifetime of the QUIC connection SSL object must exceed that of the QUIC stream SSL object; in other words, the QUIC stream SSL object must be freed first.</p>
+
+<p>Once a stream has been created using SSL_new_stream(), it may be used in the normal way using <a href="../man3/SSL_read.html">SSL_read(3)</a> and <a href="../man3/SSL_write.html">SSL_write(3)</a>.</p>
+
+<p>This function can only be used to create stream objects for locally-initiated streams. To accept incoming streams initiated by a peer, use <a href="../man3/SSL_accept_stream.html">SSL_accept_stream(3)</a>.</p>
+
+<h1 id="RETURN-VALUES">RETURN VALUES</h1>
+
+<p>SSL_new_stream() returns a new stream object, or NULL on error.</p>
+
+<p>This function fails if called on a QUIC stream SSL object or on a non-QUIC SSL object.</p>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p><a href="../man3/SSL_accept_stream.html">SSL_accept_stream(3)</a>, <a href="../man3/SSL_free.html">SSL_free(3)</a></p>
+
+<h1 id="HISTORY">HISTORY</h1>
+
+<p>SSL_new_stream() was added in OpenSSL 3.2.</p>
+
+<h1 id="COPYRIGHT">COPYRIGHT</h1>
+
+<p>Copyright 2002-2023 The OpenSSL Project Authors. All Rights Reserved.</p>
+
+<p>Licensed under the Apache License 2.0 (the &quot;License&quot;). You may not use this file except in compliance with the License. You can obtain a copy in the file LICENSE in the source distribution or at <a href="https://www.openssl.org/source/license.html">https://www.openssl.org/source/license.html</a>.</p>
+
+
+</body>
+
+</html>
+
+

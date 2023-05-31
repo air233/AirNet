@@ -1,0 +1,188 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>SSL_shutdown</title>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<link rev="made" href="mailto:" />
+</head>
+
+<body>
+
+
+
+<ul id="index">
+  <li><a href="#NAME">NAME</a></li>
+  <li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+  <li><a href="#DESCRIPTION">DESCRIPTION</a>
+    <ul>
+      <li><a href="#First-to-close-the-connection">First to close the connection</a></li>
+      <li><a href="#Peer-closes-the-connection">Peer closes the connection</a></li>
+    </ul>
+  </li>
+  <li><a href="#QUIC-SPECIFIC-SHUTDOWN-CONSIDERATIONS">QUIC-SPECIFIC SHUTDOWN CONSIDERATIONS</a></li>
+  <li><a href="#RETURN-VALUES">RETURN VALUES</a></li>
+  <li><a href="#SEE-ALSO">SEE ALSO</a></li>
+  <li><a href="#HISTORY">HISTORY</a></li>
+  <li><a href="#COPYRIGHT">COPYRIGHT</a></li>
+</ul>
+
+<h1 id="NAME">NAME</h1>
+
+<p>SSL_shutdown, SSL_shutdown_ex - shut down a TLS/SSL or QUIC connection</p>
+
+<h1 id="SYNOPSIS">SYNOPSIS</h1>
+
+<pre><code>#include &lt;openssl/ssl.h&gt;
+
+int SSL_shutdown(SSL *ssl);
+
+typedef struct ssl_shutdown_ex_args_st {
+    uint64_t    quic_error_code;
+    const char  *quic_reason;
+} SSL_SHUTDOWN_EX_ARGS;
+
+__owur int SSL_shutdown_ex(SSL *ssl, uint64_t flags,
+                           const SSL_SHUTDOWN_EX_ARGS *args,
+                           size_t args_len);</code></pre>
+
+<h1 id="DESCRIPTION">DESCRIPTION</h1>
+
+<p>SSL_shutdown() shuts down an active TLS/SSL connection. It sends the close_notify shutdown alert to the peer.</p>
+
+<p>SSL_shutdown() tries to send the close_notify shutdown alert to the peer. Whether the operation succeeds or not, the SSL_SENT_SHUTDOWN flag is set and a currently open session is considered closed and good and will be kept in the session cache for further reuse.</p>
+
+<p>Note that SSL_shutdown() must not be called if a previous fatal error has occurred on a connection i.e. if SSL_get_error() has returned SSL_ERROR_SYSCALL or SSL_ERROR_SSL.</p>
+
+<p>The shutdown procedure consists of two steps: sending of the close_notify shutdown alert, and reception of the peer&#39;s close_notify shutdown alert. The order of those two steps depends on the application.</p>
+
+<p>It is acceptable for an application to only send its shutdown alert and then close the underlying connection without waiting for the peer&#39;s response. This way resources can be saved, as the process can already terminate or serve another connection. This should only be done when it is known that the other side will not send more data, otherwise there is a risk of a truncation attack.</p>
+
+<p>When a client only writes and never reads from the connection, and the server has sent a session ticket to establish a session, the client might not be able to resume the session because it did not received and process the session ticket from the server. In case the application wants to be able to resume the session, it is recommended to do a complete shutdown procedure (bidirectional close_notify alerts).</p>
+
+<p>When the underlying connection shall be used for more communications, the complete shutdown procedure must be performed, so that the peers stay synchronized.</p>
+
+<p>SSL_shutdown() only closes the write direction. It is not possible to call SSL_write() after calling SSL_shutdown(). The read direction is closed by the peer.</p>
+
+<p>The behaviour of SSL_shutdown() additionally depends on the underlying BIO. If the underlying BIO is <b>blocking</b>, SSL_shutdown() will only return once the handshake step has been finished or an error occurred.</p>
+
+<p>If the underlying BIO is <b>nonblocking</b>, SSL_shutdown() will also return when the underlying BIO could not satisfy the needs of SSL_shutdown() to continue the handshake. In this case a call to SSL_get_error() with the return value of SSL_shutdown() will yield <b>SSL_ERROR_WANT_READ</b> or <b>SSL_ERROR_WANT_WRITE</b>. The calling process then must repeat the call after taking appropriate action to satisfy the needs of SSL_shutdown(). The action depends on the underlying BIO. When using a nonblocking socket, nothing is to be done, but select() can be used to check for the required condition. When using a buffering BIO, like a BIO pair, data must be written into or retrieved out of the BIO before being able to continue.</p>
+
+<p>After SSL_shutdown() returned 0, it is possible to call SSL_shutdown() again to wait for the peer&#39;s close_notify alert. SSL_shutdown() will return 1 in that case. However, it is recommended to wait for it using SSL_read() instead.</p>
+
+<p>SSL_shutdown() can be modified to only set the connection to &quot;shutdown&quot; state but not actually send the close_notify alert messages, see <a href="../man3/SSL_CTX_set_quiet_shutdown.html">SSL_CTX_set_quiet_shutdown(3)</a>. When &quot;quiet shutdown&quot; is enabled, SSL_shutdown() will always succeed and return 1. Note that this is not standard compliant behaviour. It should only be done when the peer has a way to make sure all data has been received and doesn&#39;t wait for the close_notify alert message, otherwise an unexpected EOF will be reported.</p>
+
+<p>There are implementations that do not send the required close_notify alert. If there is a need to communicate with such an implementation, and it&#39;s clear that all data has been received, do not wait for the peer&#39;s close_notify alert. Waiting for the close_notify alert when the peer just closes the connection will result in an error being generated. The error can be ignored using the <b>SSL_OP_IGNORE_UNEXPECTED_EOF</b>. For more information see <a href="../man3/SSL_CTX_set_options.html">SSL_CTX_set_options(3)</a>.</p>
+
+<p>SSL_shutdown_ex() is an extended version of SSL_shutdown(). If non-NULL, <i>args</i> must point to a <b>SSL_SHUTDOWN_EX_ARGS</b> structure and <i>args_len</i> must be set to <code>sizeof(SSL_SHUTDOWN_EX_ARGS)</code>. The <b>SSL_SHUTDOWN_EX_ARGS</b> structure must be zero-initialized. If <i>args</i> is NULL, the behaviour is the same as passing a zero-initialised <b>SSL_SHUTDOWN_EX_ARGS</b> structure. When used with a non-QUIC SSL object, the arguments are ignored and the call functions identically to SSL_shutdown().</p>
+
+<p>When used with a QUIC connection SSL object, SSL_shutdown_ex() initiates a QUIC immediate close. The <i>quic_error_code</i> field can be used to specify a 62-bit application error code to be signalled via QUIC. The value specified must be in the range [0, 2**62-1], else this call fails. <i>quic_reason</i> may optionally specify a zero-terminated reason string to be signalled to the peer. If a reason is not specified, a zero-length string is used as the reason. The reason string is copied and need not remain allocated after the call to the function returns. Reason strings are bounded by the path MTU and may be silently truncated if they are too long to fit in a QUIC packet. The arguments are only used on the first call to SSL_shutdown_ex() for a given QUIC connection SSL object.</p>
+
+<p>When using QUIC, how an application uses SSL_shutdown() or SSL_shutdown_ex() has implications for whether QUIC closes a connection in an RFC-compliant manner. For discussion of these issues, and for discussion of the <i>flags</i> argument, see <b>QUIC-SPECIFIC SHUTDOWN CONSIDERATIONS</b> below.</p>
+
+<h2 id="First-to-close-the-connection">First to close the connection</h2>
+
+<p>When the application is the first party to send the close_notify alert, SSL_shutdown() will only send the alert and then set the SSL_SENT_SHUTDOWN flag (so that the session is considered good and will be kept in the cache). If successful, SSL_shutdown() will return 0.</p>
+
+<p>If a unidirectional shutdown is enough (the underlying connection shall be closed anyway), this first successful call to SSL_shutdown() is sufficient.</p>
+
+<p>In order to complete the bidirectional shutdown handshake, the peer needs to send back a close_notify alert. The SSL_RECEIVED_SHUTDOWN flag will be set after receiving and processing it.</p>
+
+<p>The peer is still allowed to send data after receiving the close_notify event. When it is done sending data, it will send the close_notify alert. SSL_read() should be called until all data is received. SSL_read() will indicate the end of the peer data by returning &lt;= 0 and SSL_get_error() returning SSL_ERROR_ZERO_RETURN.</p>
+
+<h2 id="Peer-closes-the-connection">Peer closes the connection</h2>
+
+<p>If the peer already sent the close_notify alert <b>and</b> it was already processed implicitly inside another function (<a href="../man3/SSL_read.html">SSL_read(3)</a>), the SSL_RECEIVED_SHUTDOWN flag is set. SSL_read() will return &lt;= 0 in that case, and SSL_get_error() will return SSL_ERROR_ZERO_RETURN. SSL_shutdown() will send the close_notify alert, set the SSL_SENT_SHUTDOWN flag. If successful, SSL_shutdown() will return 1.</p>
+
+<p>Whether SSL_RECEIVED_SHUTDOWN is already set can be checked using the SSL_get_shutdown() (see also <a href="../man3/SSL_set_shutdown.html">SSL_set_shutdown(3)</a> call.</p>
+
+<h1 id="QUIC-SPECIFIC-SHUTDOWN-CONSIDERATIONS">QUIC-SPECIFIC SHUTDOWN CONSIDERATIONS</h1>
+
+<p>When using QUIC, SSL_shutdown() or SSL_shutdown_ex() causes any data written to a stream which has not yet been sent to the peer to be written before the shutdown process is considered complete. An exception to this is streams which terminated in a non-normal fashion, for example due to a stream reset; only streams which are non-terminated or which terminated in a normal fashion have their pending send buffers flushed in this manner. This behaviour can be skipped by setting the <b>SSL_SHUTDOWN_FLAG_NO_STREAM_FLUSH</b> flag; in this case, data remaining in stream send buffers may not be transmitted to the peer. This flag may be used when a non-normal application condition has occurred and the delivery of data written to streams via <a href="../man3/SSL_write.html">SSL_write(3)</a> is no longer relevant.</p>
+
+<p>Aspects of how QUIC handles connection closure must be taken into account by applications. Ordinarily, QUIC expects a connection to continue to be serviced for a substantial period of time after it is nominally closed. This is necessary to ensure that any connection closure notification sent to the peer was successfully received. However, a consequence of this is that a fully RFC-compliant QUIC connection closure process could take of the order of seconds. This may be unsuitable for some applications, such as short-lived processes which need to exit immediately after completing an application-layer transaction.</p>
+
+<p>As such, there are two shutdown modes available to users of QUIC connection SSL objects:</p>
+
+<dl>
+
+<dt id="RFC-compliant-shutdown-mode">RFC compliant shutdown mode</dt>
+<dd>
+
+<p>This is the default behaviour. The shutdown process may take a period of time up to three times the current estimated RTT to the peer. It is possible for the closure process to complete much faster in some circumstances but this cannot be relied upon.</p>
+
+<p>In blocking mode, the function will return once the closure process is complete. In nonblocking mode, SSL_shutdown_ex() should be called until it returns 1, indicating the closure process is complete and the connection is now fully shut down.</p>
+
+</dd>
+<dt id="Rapid-shutdown-mode">Rapid shutdown mode</dt>
+<dd>
+
+<p>In this mode, the peer is notified of connection closure on a best effort basis by sending a single QUIC packet. If that QUIC packet is lost, the peer will not know that the connection has terminated until the negotiated idle timeout (if any) expires.</p>
+
+<p>This will generally return 0 on success, indicating that the connection has not yet been fully shut down (unless it has already done so, in which case it will return 1).</p>
+
+</dd>
+</dl>
+
+<p>If <b>SSL_SHUTDOWN_FLAG_RAPID</b> is specified in <i>flags</i>, a rapid shutdown is performed, otherwise an RFC-compliant shutdown is performed.</p>
+
+<p>If an application calls SSL_shutdown_ex() with <b>SSL_SHUTDOWN_FLAG_RAPID</b>, an application can subsequently change its mind about performing a rapid shutdown by making a subsequent call to SSL_shutdown_ex() without the flag set.</p>
+
+<h1 id="RETURN-VALUES">RETURN VALUES</h1>
+
+<p>For both SSL_shutdown() and SSL_shutdown_ex() the following return values can occur:</p>
+
+<dl>
+
+<dt id="pod0">0</dt>
+<dd>
+
+<p>The shutdown process is ongoing and has not yet completed.</p>
+
+<p>For TLS and DTLS, this means that a close_notify alert has been sent but the peer has not yet replied in turn with its own close_notify.</p>
+
+<p>For QUIC connection SSL objects, a CONNECTION_CLOSE frame may have been sent but the connection closure process has not yet completed.</p>
+
+<p>Unlike most other functions, returning 0 does not indicate an error. <a href="../man3/SSL_get_error.html">SSL_get_error(3)</a> should not be called; it may misleadingly indicate an error even though no error occurred.</p>
+
+</dd>
+<dt id="pod1">1</dt>
+<dd>
+
+<p>The shutdown was successfully completed.</p>
+
+<p>For TLS and DTLS, this means that a close_notify alert was sent and the peer&#39;s close_notify alert was received.</p>
+
+<p>For QUIC connection SSL objects, this means that the connection closure process has completed.</p>
+
+</dd>
+<dt id="pod01">&lt;0</dt>
+<dd>
+
+<p>The shutdown was not successful. Call <a href="../man3/SSL_get_error.html">SSL_get_error(3)</a> with the return value <b>ret</b> to find out the reason. It can occur if an action is needed to continue the operation for nonblocking BIOs.</p>
+
+<p>It can also occur when not all data was read using SSL_read().</p>
+
+</dd>
+</dl>
+
+<h1 id="SEE-ALSO">SEE ALSO</h1>
+
+<p><a href="../man3/SSL_get_error.html">SSL_get_error(3)</a>, <a href="../man3/SSL_connect.html">SSL_connect(3)</a>, <a href="../man3/SSL_accept.html">SSL_accept(3)</a>, <a href="../man3/SSL_set_shutdown.html">SSL_set_shutdown(3)</a>, <a href="../man3/SSL_CTX_set_quiet_shutdown.html">SSL_CTX_set_quiet_shutdown(3)</a>, <a href="../man3/SSL_CTX_set_options.html">SSL_CTX_set_options(3)</a> <a href="../man3/SSL_clear.html">SSL_clear(3)</a>, <a href="../man3/SSL_free.html">SSL_free(3)</a>, <a href="../man7/ssl.html">ssl(7)</a>, <a href="../man7/bio.html">bio(7)</a></p>
+
+<h1 id="HISTORY">HISTORY</h1>
+
+<p>The SSL_shutdown_ex() function was added in OpenSSL 3.2.</p>
+
+<h1 id="COPYRIGHT">COPYRIGHT</h1>
+
+<p>Copyright 2000-2020 The OpenSSL Project Authors. All Rights Reserved.</p>
+
+<p>Licensed under the Apache License 2.0 (the &quot;License&quot;). You may not use this file except in compliance with the License. You can obtain a copy in the file LICENSE in the source distribution or at <a href="https://www.openssl.org/source/license.html">https://www.openssl.org/source/license.html</a>.</p>
+
+
+</body>
+
+</html>
+
+
