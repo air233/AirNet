@@ -6,7 +6,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR} ../../3rd/lib/googletest/include
 
 link_directories(../../3rd/lib/googletest/lib ../../3rd/lib/openssl/lib)
 
-add_executable(until  "encoding.cpp" "test/test_encoding.cpp" "base64.h" "base64.cpp" "md5.h" "md5.cpp" "test/test_md5.cpp" "test/test_base64.cpp" "test/main.cpp")
+add_executable(until  "encoding.cpp" "test/test_encoding.cpp" "base64.h" "base64.cpp" "md5.h" "md5.cpp" "test/test_md5.cpp" "test/test_base64.cpp" "test/main.cpp" "times.cpp" "test/test_times.cpp")
 
 
 if(MSVC)
