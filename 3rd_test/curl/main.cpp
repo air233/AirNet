@@ -22,7 +22,8 @@ int main() {
 
 		// 设置请求的 URL
 		curl_easy_setopt(curl, CURLOPT_URL, "https://www.baidu.com");
-		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+		//curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+		curl_easy_setopt(curl, CURLOPT_CAINFO, "cacert.pem");
 		// 设置接收响应数据的回调函数
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
@@ -46,6 +47,8 @@ int main() {
 
 	// 清理 libcurl
 	curl_global_cleanup();
+
+	system("pause");
 
 	return 0;
 }
