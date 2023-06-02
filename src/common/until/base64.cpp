@@ -76,7 +76,7 @@ std::string base64_decode(const std::string& encoded)
 		{
 			for (i = 0; i < 4; i++) 
 			{
-				char_array_4[i] = base64_chars.find(char_array_4[i]);
+				char_array_4[i] = (unsigned char)base64_chars.find(char_array_4[i]);
 			}
 
 			char_array_3[0] = (char_array_4[0] << 2) + ((char_array_4[1] & 0x30) >> 4);
@@ -100,7 +100,7 @@ std::string base64_decode(const std::string& encoded)
 
 		for (j = 0; j < 4; j++) 
 		{
-			char_array_4[j] = base64_chars.find(char_array_4[j]);
+			char_array_4[j] = (unsigned char)base64_chars.find(char_array_4[j]);
 		}
 
 		char_array_3[0] = (char_array_4[0] << 2) + ((char_array_4[1] & 0x30) >> 4);

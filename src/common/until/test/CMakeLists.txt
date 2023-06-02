@@ -15,7 +15,18 @@ ${LIB_DIR}/openssl/include
 
 link_directories(${LIB_DIR}/googletest/lib ${LIB_DIR}/openssl/lib)
 
-add_executable(until_test  "../encoding.cpp" "test_encoding.cpp" "../base64.h" "../base64.cpp" "../md5.h" "../md5.cpp" "test_md5.cpp" "test_base64.cpp" "main.cpp" "../times.cpp" "test_times.cpp")
+add_executable(until_test  
+"../encoding.cpp" 
+"../base64.h" 
+"../base64.cpp" 
+"../md5.h" 
+"../md5.cpp" 
+"../times.cpp" 
+"main.cpp" 
+"test_md5.cpp" 
+"test_base64.cpp" 
+"test_encoding.cpp" 
+"test_times.cpp")
 
 if(MSVC)
 	set(CMAKE_CXX_FLAGS_DEBUG "/MTd")
