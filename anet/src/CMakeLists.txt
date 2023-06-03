@@ -25,5 +25,5 @@ endif()
 
 #将编译后的程序输出到bin目录
 set_target_properties(netlib_test PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../bin
 )

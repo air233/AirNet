@@ -1,43 +1,105 @@
 #include "log.h"
 #include <stdio.h>
+#include <stdarg.h>
 #include <iostream>
 #include "../until/times.h"
 
-Log::Log(std::string& log_path) :
-	DEBUG(m_stream),INFO(m_stream),WRAN(m_stream),ERROR(m_stream),FATAL(m_stream)
+Log::Log(std::string& log_path, int32_t level, int32_t type):
+	m_file_stream("./","log",0,0,0),m_level(level),m_type(type)
 {
-	::fopen_s(&m_file, log_path.c_str(), "a");
 }
 
 Log::~Log()
 {
 }
 
-void Log::flush()
+
+FileStream& Log::logstream()
 {
-	std::cout << m_oss.str().c_str() << std::endl;
-
-	fprintf(m_file, m_oss.str().c_str());
-	fprintf(m_file, "\n");
-
-	m_oss.str("");
-	m_oss.clear();
+	return m_file_stream;
 }
 
-std::ostringstream& Log::strem()
-{
-	m_oss <<"[" << GetMSTimeStr() << "]";
 
-	return m_oss;
+void Log::debug(const char* format, ...)
+{
+	if (m_level > 0) return;
+
+	va_list args;
+	va_start(args, format);
+	_log("DEBUG", format, args);
+	va_end(args);
 }
 
-LogStream& Log::logstream()
+void Log::info(const char* format, ...)
 {
-	return m_stream;
+	if (m_level > 1) return;
+
+	va_list args;
+	va_start(args, format);
+	_log("INFO", format, args);
+	va_end(args);
 }
 
-void Log::debug(std::string log)
+void Log::warn(const char* format, ...)
 {
+	if (m_level > 2) return;
 
+	va_list args;
+	va_start(args, format);
+	_log("WARN", format, args);
+	va_end(args);
 }
 
+void Log::error(const char* format, ...)
+{
+	if (m_level > 3) return;
+
+	va_list args;
+	va_start(args, format);
+	_log("ERROR", format, args);
+	va_end(args);
+}
+
+void Log::fatal(const char* format, ...)
+{
+	va_list args;
+	va_start(args, format);
+	_log("FATAL", format, args);
+	va_end(args);
+
+	abort();
+}
+
+void Log::log(const char* level, const char* pszFileName, const char* pszFuncName, int32_t nLineNum, const char* format, ...)
+{
+	va_list args;
+	va_start(args, format);
+	_log(level,pszFileName,pszFuncName,nLineNum, format, args);
+	va_end(args);
+
+	if (level == "FATAL")
+	{
+		abort();
+	}
+}
+
+void Log::_log(const char* level, const char* format, va_list argptr)
+{
+	char szMsg[1024] = { 0 };
+	vsnprintf(szMsg, sizeof(szMsg), format, argptr);
+	m_file_stream.log(level, szMsg);
+}
+
+void Log::_log(const char* level, const char* pszFileName, const char* pszFuncName, int32_t nLineNum, const char* format, va_list argptr)
+{
+	char szMsg[1024] = { 0 };
+
+	int32_t n1 = 0;
+	if (m_type == 1)
+	{
+		n1 = snprintf(szMsg, sizeof szMsg, "(%s:%d:%s) ", pszFileName, nLineNum, pszFuncName);
+	}
+	
+	vsnprintf(szMsg+n1, sizeof(szMsg)-n1, format, argptr);
+	m_file_stream.log(level, szMsg);
+}

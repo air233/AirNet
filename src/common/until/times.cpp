@@ -4,11 +4,15 @@
 #include <iostream>
 #include <sstream>
 #include <iomanip>
-
-
 static const int kMicroSecondsPerSecond = 1000 * 1000;
 static const int kMilliSecondsPerSecond = 1000;
 
+time_t GetNow()
+{
+	auto now = std::chrono::system_clock::now();
+	auto milliseconds = std::chrono::time_point_cast<std::chrono::milliseconds>(now);
+	return milliseconds.time_since_epoch().count();
+}
 
 uint32_t GetTime()
 {
@@ -59,7 +63,7 @@ std::string GetMSTimeStr(uint64_t mstime)
 	std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &tm);
 
 	std::ostringstream oss;
-	oss << buffer << "." << ms;
+	oss << buffer << "." << std::setfill('0') << std::setw(3) << ms;
 	return oss.str();
 }
 
@@ -82,5 +86,31 @@ uint32_t GetWeekDay(uint32_t time)
 
 	// tm_wday 表示星期几，其中 0 表示星期日，1 表示星期一，以此类推
 	return tm.tm_wday;
+}
+
+bool IsSameDay(uint32_t time1, uint32_t time2)
+{
+	std::tm tm1, tm2;
+
+	std::time_t t1 = time1;
+	std::time_t t2 = time2;
+
+	localtime_s(&tm1, &t1);
+	localtime_s(&tm2, &t2);
+
+	return (tm1.tm_year == tm2.tm_year) && (tm1.tm_mon == tm2.tm_mon) && (tm1.tm_mday == tm2.tm_mday);
+}
+
+bool IsSameHour(uint32_t time1, uint32_t time2)
+{
+	std::tm tm1, tm2;
+
+	std::time_t t1 = time1;
+	std::time_t t2 = time2;
+
+	localtime_s(&tm1, &t1);
+	localtime_s(&tm2, &t2);
+
+	return (tm1.tm_year == tm2.tm_year) && (tm1.tm_mon == tm2.tm_mon) && (tm1.tm_mday == tm2.tm_mday) && (tm1.tm_hour == tm2.tm_hour);
 }
 

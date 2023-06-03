@@ -9,6 +9,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${PARENT_DIR} ../../until/times.
 add_executable(log_test 
 "../log.cpp" 
 "../../until/times.cpp"
-"../logstream.cpp"
+"../filestream.cpp"
 "test_log.cpp"
 )

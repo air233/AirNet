@@ -3,7 +3,12 @@ Networking Framework Demo
 
 3rd
   lib
-    库文件
+    curl
+        include
+        lib
+    openssl
+        include
+        lib
   source
     库源码
 
@@ -17,4 +22,5 @@ anet
         库文件
 
 src
-    anet代码
+    common
+        CMakeLists.txt

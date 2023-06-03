@@ -33,7 +33,9 @@ if(MSVC)
     set(CMAKE_CXX_FLAGS_RELEASE "/MT")
 	target_link_libraries(until_test gtest libcrypto_static libssl_static)
 
+	#set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 else()
 	#Á´½Ólibgtest
 	target_link_libraries(until_test gtest libcrypto_static libssl_static)
 endif()
+

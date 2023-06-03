@@ -22,7 +22,13 @@ TEST(testcase0, time)
 	std::string curms = GetMSTimeStr();
 	std::cout << "cur milliseconds:" << curms << std::endl;
 
-	
-
 	EXPECT_EQ(day, day2);
+
+	uint32_t time_add = time + 3600;
+	std::cout << "get seconds add time:" << time_add << std::endl;
+
+	EXPECT_EQ(IsSameDay(time, time_add), true);
+
+	EXPECT_EQ(IsSameHour(time, time_add), false);
+
 }
