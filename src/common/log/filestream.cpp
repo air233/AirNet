@@ -2,8 +2,50 @@
 #include "../until/times.h"
 #include<assert.h>
 #include <iostream>
+#include <filesystem>
 
 #define FILESIZE 1024
+
+#ifdef _MSC_VER
+#include <windows.h>
+#else
+#include <sys/stat.h>
+#endif
+
+
+bool createDirectoryIfNotExists(const std::string& directoryPath) {
+#ifdef _MSC_VER
+	if (!CreateDirectory(directoryPath.c_str(), NULL)) {
+		if (GetLastError() == ERROR_ALREADY_EXISTS) {
+			//std::cout << "Directory already exists: " << directoryPath << std::endl;
+			return true;
+		}
+		else {
+			std::cout << "Failed to create directory: " << directoryPath << std::endl;
+			return false;
+		}
+	}
+	//std::cout << "Directory created: " << directoryPath << std::endl;
+	return true;
+#else
+	struct stat st;
+	if (stat(directoryPath.c_str(), &st) == 0) {
+		if (S_ISDIR(st.st_mode)) {
+			std::cout << "Directory already exists: " << directoryPath << std::endl;
+			return true;
+		}
+	}
+
+	if (mkdir(directoryPath.c_str(), 0777) == 0) {
+		std::cout << "Directory created: " << directoryPath << std::endl;
+		return true;
+	}
+
+	std::cout << "Failed to create directory: " << directoryPath << std::endl;
+	return false;
+#endif
+}
+
 
 std::string FileStream::getLogFileName(const std::string& basename, uint8_t mode, time_t* now)
 {
@@ -42,6 +84,9 @@ FileStream::FileStream(std::string path, std::string file_name, int32_t level, u
 	time_t now_time;
 
 	m_path = path;
+	
+	createDirectoryIfNotExists(m_path);
+
 	m_base = file_name;
 
 	m_log_name = m_path + FileStream::getLogFileName(m_base, m_cut_mode, &now_time);

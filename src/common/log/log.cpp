@@ -4,8 +4,8 @@
 #include <iostream>
 #include "../until/times.h"
 
-Log::Log(std::string& log_path, int32_t level, int32_t type):
-	m_file_stream("./","log",0,0,0),m_level(level),m_type(type)
+Log::Log(const std::string& log_path, const std::string& file_name, int32_t level, int32_t type):
+	m_file_stream(log_path, file_name, 0, 0, 0),m_level(level),m_type(type)
 {
 }
 
