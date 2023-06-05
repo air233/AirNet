@@ -68,13 +68,11 @@ void Buffer::pushUint8(uint8_t data)
 
 void Buffer::pushString(std::string& str)
 {
-    push(str.size());
     push(str.c_str(), str.size());
 }
 
 void Buffer::pushCString(const char* cstr, size_t size)
 {
-	push(size);
 	push(cstr, size);
 }
 
@@ -148,14 +146,27 @@ bool Buffer::peekUint8(uint8_t& data)
 	return true;
 }
 
-void Buffer::peekString(std::string& str, size_t size)
+size_t Buffer::peekString(std::string& str, size_t size)
 {
     str = get(size);
+
+    return str.size();
 }
 
-void Buffer::peekCString(std::string& str, size_t size)
+size_t Buffer::peekCString(std::string& str, size_t size)
 {
     str = get(size);
+
+    return str.size();
+}
+
+size_t Buffer::peekCString(char* data, size_t size)
+{
+   std::string str = get(size);
+
+   memcpy(data, str.c_str(), str.size());
+
+   return str.size();
 }
 
 void Buffer::push(const char* data, size_t size)

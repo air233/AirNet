@@ -58,8 +58,10 @@ public:
     bool peekUint16(uint16_t& data);
     bool peekInt8(int8_t& data);
     bool peekUint8(uint8_t& data);
-    void peekString(std::string& str, size_t size);
-    void peekCString(std::string& str, size_t size);
+    size_t peekString(std::string& str, size_t size);
+    size_t peekCString(std::string& str, size_t size);
+    size_t peekCString(char* data, size_t size);
+
 private:
 	std::vector<char> m_buffer;
 };

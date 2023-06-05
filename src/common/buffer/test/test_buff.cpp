@@ -135,12 +135,8 @@ TEST(testcase5, string)
 
 	std::string str("hello world");
 	buff.pushString(str);
-
-	size_t size = 0;
-	buff.peek(size);
-
 	std::string newstr;
-	buff.peekString(newstr, size);
+	buff.peekString(newstr, str.size());
 
 	EXPECT_EQ(newstr, str);
 	EXPECT_EQ(buff.get(1), "");
@@ -151,20 +147,34 @@ TEST(testcase6, cstring)
 	Buffer buff;
 
 	const char* pst = "hello world";
-	//cout << strlen(pst);
+	buff.pushUint32(strlen(pst));
 	buff.pushCString(pst, strlen(pst));
 
-	size_t size = 0;
-	buff.peek(size);
-
+	uint32_t size = 0;
 	std::string newstr;
-	buff.peekString(newstr, size);
+	buff.peekUint32(size);
+	int newstr_len = buff.peekString(newstr, size);
+	std::cout << "size:" << size << std::endl;
+	std::cout << "newstr_len:" << newstr_len << std::endl;
 
 	EXPECT_EQ(newstr, pst);
 	EXPECT_EQ(buff.get(1), "");
+	EXPECT_EQ(buff.size(), 0);
+
+	buff.pushCString(pst, strlen(pst));
+	char data[1024] = { 0 };
+	size_t data_len = buff.peekCString(data, 1024);
+	std::cout << "data:" << data << std::endl;
+	std::cout << "data_len:" << data_len << std::endl;
+	EXPECT_EQ(std::string(data),pst);
+
 
 	buff.pushInt32(12);
 	int32_t in32 = 0;
 	buff.peekInt32(in32);
 	EXPECT_EQ(in32, 12);
+
+	std::cout << "size_t len:" << sizeof size_t << std::endl;
+	std::cout << "unsigned int len:" << sizeof (unsigned int) << std::endl;
+	std::cout << "unsigned __int64 len:" << sizeof (unsigned __int64) << std::endl;
 }
