@@ -7,8 +7,6 @@ public:
     TCPSocket();
     ~TCPSocket();
 
-    bool listen();
-
     void setNoDelay(bool on);
     void setReuseAddr(bool on);
     void setKeepAlive(bool on);

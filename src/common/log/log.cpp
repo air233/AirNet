@@ -95,10 +95,13 @@ void Log::_log(const char* level, const char* pszFileName, const char* pszFuncNa
 	char szMsg[1024] = { 0 };
 
 	int32_t n1 = 0;
+
 	if (m_type == 1)
 	{
 		n1 = snprintf(szMsg, sizeof szMsg, "(%s:%d:%s) ", pszFileName, nLineNum, pszFuncName);
 	}
+
+	//TODO:后续迭代 此处打印格式可定制
 	
 	vsnprintf(szMsg+n1, sizeof(szMsg)-n1, format, argptr);
 	m_file_stream.log(level, szMsg);

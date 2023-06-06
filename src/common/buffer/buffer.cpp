@@ -76,6 +76,11 @@ void Buffer::pushCString(const char* cstr, size_t size)
 	push(cstr, size);
 }
 
+void Buffer::insertCString(const char* cstr, size_t start_index, size_t size)
+{
+    insert(cstr + start_index, size);
+}
+
 bool Buffer::peekInt64(int64_t& data)
 {
 	if (false == peek(data))
@@ -175,6 +180,16 @@ void Buffer::push(const char* data, size_t size)
     {
         m_buffer.push_back(data[i]);
     }
+}
+
+void Buffer::insert(const char* data, size_t size)
+{
+    if (size == 0) return;
+
+    for (size_t i = 1; i <= size; i++)
+	{
+		m_buffer.insert(m_buffer.begin(),data[size - i]);
+	}
 }
 
 std::string Buffer::get(size_t size)

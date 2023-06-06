@@ -22,6 +22,7 @@ public:
     ~Buffer();
 
     void push(const char* data,size_t size);
+    void insert(const char* data, size_t size);
 
     /*暂时不提供
     void pop(size_t size, char* data) {};*/
@@ -49,6 +50,7 @@ public:
     void pushUint8(uint8_t data);
     void pushString(std::string& str);
     void pushCString(const char* cstr, size_t size);
+    void insertCString(const char* cstr,size_t start_index , size_t size);
 
     bool peekInt64(int64_t& data);
     bool peekUint64(uint64_t& data);

@@ -10,7 +10,7 @@
 TCPSocket::TCPSocket()
 {
 	m_fd = -1;
-	m_socket_type = SOCKET_TYPE.TCP;
+	m_socket_type = TCP;
 }
 
 TCPSocket::~TCPSocket()

@@ -178,3 +178,22 @@ TEST(testcase6, cstring)
 	std::cout << "unsigned int len:" << sizeof (unsigned int) << std::endl;
 	std::cout << "unsigned __int64 len:" << sizeof (unsigned __int64) << std::endl;
 }
+
+TEST(testcase7, cstring2)
+{
+	Buffer buff;
+
+	const char* pst = "hello world";
+
+	buff.pushString(std::string("hhhhh"));
+
+	buff.insertCString(pst, 0, 11);
+	std::string newstr;
+	int newstr_len = buff.peekString(newstr, 11);
+	EXPECT_EQ(newstr, pst);
+	std::cout << "newstr:" << newstr << std::endl;
+
+	newstr_len = buff.peekString(newstr, buff.size());
+	EXPECT_EQ(newstr, "hhhhh");
+	std::cout << "newstr:" << newstr << std::endl;
+}

@@ -1,6 +1,8 @@
 # AirNet
 Networking Framework Demo
 
+支持c++17
+
 3rd
   lib
     curl
@@ -22,5 +24,16 @@ anet
         库文件
 
 src
-    common
+    common 通用函数
+        buffer
+        log
+        thread
+        timer
+        until
         CMakeLists.txt
+
+    net 网络相关
+        poller
+        socket
+        network.xx
+
