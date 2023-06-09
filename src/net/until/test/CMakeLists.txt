@@ -18,7 +18,7 @@ ${LIB_DIR}/googletest/include
 link_directories(${LIB_DIR}/googletest/lib)
 
 add_executable(addres_test
-"${PARENT_DIR}/InetAddress.cpp"
+"${PARENT_DIR}/inetAddress.cpp"
 "${COMMON_DIR}/until/encoding.cpp" 
 "${COMMON_DIR}/until/times.cpp" 
 "${COMMON_DIR}/log/log.cpp"

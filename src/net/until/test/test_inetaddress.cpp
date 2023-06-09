@@ -1,4 +1,4 @@
-#include "../InetAddress.h"
+#include "../inetAddress.h"
 #include <gtest/gtest.h>
 #include <string>
 using namespace std;
@@ -54,7 +54,7 @@ TEST(testcase3, resolve)
 	InetAddress addr(443);
 	if (InetAddress::resolve("google.com", &addr))
 	{
-		std::cout << "google.com resolved to " << addr.toIpPort() << std::endl;
+		std::cout << "google.com resolved to " << addr.toIp() << std::endl;
 	}
 	else
 	{

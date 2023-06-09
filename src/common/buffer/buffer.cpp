@@ -23,7 +23,7 @@ void Buffer::pushInt64(int64_t data)
 
 void Buffer::pushUint64(uint64_t data)
 {
-    data = HostToBigEndian((int64_t)data);
+    data = HostToBigEndian(data);
 
     push(data);
 }
@@ -37,7 +37,7 @@ void Buffer::pushInt32(int32_t data)
 
 void Buffer::pushUint32(uint32_t data)
 {
-    data = HostToBigEndian((int32_t)data);
+    data = HostToBigEndian(data);
 
     push(data);
 }
@@ -51,7 +51,7 @@ void Buffer::pushInt16(int16_t data)
 
 void Buffer::pushUint16(uint16_t data)
 {
-	data = HostToBigEndian((int16_t)data);
+	data = HostToBigEndian(data);
 
 	push(data);
 }
@@ -95,7 +95,7 @@ bool Buffer::peekUint64(uint64_t& data)
 	if (false == peek(data))
 		return false;
 
-    data = (uint64_t)BigEndianToHost((int64_t)data);
+    data = BigEndianToHost(data);
     return true;
 }
 
@@ -113,7 +113,7 @@ bool Buffer::peekUint32(uint32_t& data)
 	if (false == peek(data))
 		return false;
 
-	data = (uint32_t)BigEndianToHost((int32_t)data);
+	data = BigEndianToHost(data);
 	return true;
 }
 
@@ -131,7 +131,7 @@ bool Buffer::peekUint16(uint16_t& data)
 	if (false == peek(data))
 		return false;
 
-	data = (uint16_t)BigEndianToHost((int16_t)data);
+	data = BigEndianToHost(data);
 	return true;
 }
 

@@ -2,7 +2,7 @@
 #include <map>
 #include "socket/basesocket.h"
 #include "poller/poll.h"
-
+#include "until/inetAddress.h"
 class Network
 {
 public:
@@ -21,23 +21,32 @@ public:
 	void update();
 	void stop();
 
-	bool connect();
-	bool asynconnect();
-	bool send();
+	uint64_t connect(InetAddress& address);
+	uint64_t asynConnect(InetAddress& address);
+
+	bool send(uint64_t net_id, const char* data, size_t size);
 	
 	/*回调*/
-	void onConnet();
-	void onDisconnet();
-	void onRecv();
+	void onConnet(uint64_t net_id);
+
+	void onDisconnet(uint64_t net_id);
+
+	void onRecv(uint64_t net_id, const char* data, size_t size);
+
+	//返回一个连接
+	//xxxx getConnect(uint64_t net_id);
 
 private:
 	uint64_t m_net_id;
 
 	int32_t m_init;
 
-	std::shared_ptr<BaseSocket> m_socket;
+	//TODO:一个连接容器
+	//map<uint_64,xxxx> m_
+
+	std::shared_ptr<BaseSocket> m_accept;
 
 	std::shared_ptr<Poll> m_poll;
 
-	//异步queue
+	//异步connect queue
 };

@@ -59,6 +59,7 @@ TEST(testcase1, encoding)
 	// 打印转换结果
 	std::cout << "Big endian order: " << std::hex << bigEndianValue << std::endl;
 }
+
 TEST(testcase2, encoding_int64)
 {
 	int64_t originalValue = 0x8877665544332211LL;
@@ -101,6 +102,7 @@ TEST(testcase3, encoding_int32)
 
 	EXPECT_EQ(originalValue, hostValue);
 }
+
 TEST(testcase4, encoding_int16)
 {
 	int16_t originalValue = 0x1122;  // 假设原始值为小端序表示的整数
@@ -119,5 +121,55 @@ TEST(testcase4, encoding_int16)
 	}
 
 	EXPECT_EQ(originalValue, convertedBackValue);
+}
+
+TEST(testcase5, encoding_uint64)
+{
+	uint64_t originalValue = 0x1234567890ABCDEF;
+
+	// 测试 BigEndianToHost 函数
+	uint64_t convertedValue = BigEndianToHost(originalValue);
+	std::cout << "BigEndianToHost: " << std::hex << convertedValue << std::endl;
+	// 预期输出：BigEndianToHost: 1234567890ABCDEF
+
+	// 测试 HostToBigEndian 函数
+	uint64_t convertedBack = HostToBigEndian(convertedValue);
+	std::cout << "HostToBigEndian: " << std::hex << convertedBack << std::endl;
+	// 预期输出：HostToBigEndian: 1234567890ABCDEF
+
+	EXPECT_EQ(originalValue, convertedBack);
+}
+
+TEST(testcase5, encoding_uint32)
+{
+	uint32_t originalValue = 0x12345678;
+
+	// 测试 BigEndianToHost 函数
+	uint32_t convertedValue = BigEndianToHost(originalValue);
+	std::cout << "BigEndianToHost: " << std::hex << convertedValue << std::endl;
+	// 预期输出：BigEndianToHost: 78563412
+
+	// 测试 HostToBigEndian 函数
+	uint32_t convertedBack = HostToBigEndian(convertedValue);
+	std::cout << "HostToBigEndian: " << std::hex << convertedBack << std::endl;
+	// 预期输出：HostToBigEndian: 12345678
+
+	EXPECT_EQ(originalValue, convertedBack);
+}
+
+TEST(testcase5, encoding_uint16)
+{
+	uint16_t originalValue = 0x1234;
+
+	// 测试 BigEndianToHost 函数
+	uint16_t convertedValue = BigEndianToHost(originalValue);
+	std::cout << "BigEndianToHost: " << std::hex << convertedValue << std::endl;
+	// 预期输出：BigEndianToHost: 3412
+
+	// 测试 HostToBigEndian 函数
+	uint16_t convertedBack = HostToBigEndian(convertedValue);
+	std::cout << "HostToBigEndian: " << std::hex << convertedBack << std::endl;
+	// 预期输出：HostToBigEndian: 1234
+	EXPECT_EQ(originalValue, convertedBack);
 }
 
