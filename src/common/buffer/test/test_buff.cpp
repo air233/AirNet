@@ -197,3 +197,41 @@ TEST(testcase7, cstring2)
 	EXPECT_EQ(newstr, "hhhhh");
 	std::cout << "newstr:" << newstr << std::endl;
 }
+
+
+TEST(testcase8, buff)
+{
+	Buffer buff;
+	EXPECT_EQ(buff.readableSize(), 0);
+	EXPECT_EQ(buff.writableSize(), kInitSize);
+
+	const string str(200, 'x');
+	buff.pushString(str);
+	EXPECT_EQ(buff.readableSize(), str.size());
+	EXPECT_EQ(buff.writableSize(), kInitSize - str.size());
+
+	string str2;
+	buff.peekString(str2, 50);
+	EXPECT_EQ(str2.size(), 50);
+	EXPECT_EQ(buff.readableSize(), str.size() - str2.size());
+
+}
+
+TEST(testcase9, buffGrow)
+{
+	Buffer buf;
+	buf.pushString(string(400, 'y'));
+	EXPECT_EQ(buf.readableSize(), 400);
+	EXPECT_EQ(buf.writableSize(), kInitSize - 400);
+
+	string str;
+	buf.peekString(str,50);
+	EXPECT_EQ(buf.readableSize(), 350);
+	EXPECT_EQ(buf.writableSize(), kInitSize - 400);
+
+	buf.pushString(string(1000, 'z'));
+	EXPECT_EQ(buf.readableSize(), 1350);
+	EXPECT_EQ(buf.writableSize(), 0);
+	std::cout << "writableSize:"<< buf.writableSize() << std::endl;
+
+}

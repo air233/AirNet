@@ -1,18 +1,20 @@
 #include "buffer.h"
+#include <assert.h>
 #include "../until/encoding.h"
+#include <iostream>
 
-Buffer::Buffer()
+Buffer::Buffer(size_t init_size) :
+    m_buffer(init_size),
+    m_read_index(0),
+    m_write_index(0)
 {
+
 }
 
 Buffer::~Buffer()
 {
 }
 
-size_t Buffer::size()
-{
-    return m_buffer.size();
-}
 
 void Buffer::pushInt64(int64_t data)
 {
@@ -66,7 +68,7 @@ void Buffer::pushUint8(uint8_t data)
     push(data);
 }
 
-void Buffer::pushString(std::string& str)
+void Buffer::pushString(const std::string& str)
 {
     push(str.c_str(), str.size());
 }
@@ -174,42 +176,96 @@ size_t Buffer::peekCString(char* data, size_t size)
    return str.size();
 }
 
-void Buffer::push(const char* data, size_t size)
+size_t Buffer::readableSize()
 {
-    for (size_t i = 0; i < size; i++)
+    return m_write_index - m_read_index;
+}
+
+size_t Buffer::writableSize()
+{
+    return m_buffer.size() - m_write_index;
+}
+
+void Buffer::ensureWritableSize(size_t len)
+{
+    if (writableSize() < len)
     {
-        m_buffer.push_back(data[i]);
+        makeSpace(len);
+    }
+    assert(writableSize() >= len);
+}
+
+void Buffer::makeSpace(size_t len)
+{
+    size_t space = m_read_index + writableSize();
+
+    if (space < len)
+    {
+        m_buffer.resize(m_write_index + len);
+    }
+    else
+    {
+        size_t readable = readableSize();
+        memcpy(begin(), begin() + m_read_index, readable);
+        m_read_index = 0;
+        m_write_index = readable;
     }
 }
 
-void Buffer::insert(const char* data, size_t size)
+char* Buffer::begin()
 {
-    if (size == 0) return;
+    return m_buffer.data();
+}
 
-    for (size_t i = 1; i <= size; i++)
-	{
-		m_buffer.insert(m_buffer.begin(),data[size - i]);
-	}
+const char* Buffer::begin() const
+{
+    return m_buffer.data();
+}
+
+void Buffer::push(const void* data, size_t size)
+{
+    ensureWritableSize(size);
+    
+    memcpy(begin() + m_write_index, data, size);
+
+    m_write_index += size;
+}
+
+void Buffer::insert(const void* data, size_t size)
+{
+    if (m_read_index >= size)
+    {
+        memcpy(begin() + m_read_index - size, data, size);
+        m_read_index -= size;
+    }
+    else
+    {
+        Buffer newbuff;
+        newbuff.push(data,size);
+        newbuff.push(begin() + m_read_index, readableSize());
+        swap(newbuff);
+    }
 }
 
 std::string Buffer::get(size_t size)
 {
-    if (m_buffer.size() == 0)
-        return dummy;
+    size_t read_size = readableSize() < size ? readableSize() : size;
 
-    if (size > m_buffer.size())
-    {
-        size = m_buffer.size();
-    }
+    std::string data(begin()+m_read_index, begin()+m_read_index+ read_size);
 
-    std::string data(m_buffer.begin(), m_buffer.begin() + size);
-
-    m_buffer.erase(m_buffer.begin(), m_buffer.begin() + size);
+    m_read_index += read_size;
 
     return data;
+}
+
+size_t Buffer::size()
+{
+    return readableSize();
 }
 
 void Buffer::swap(Buffer& rsh)
 {
     m_buffer.swap(rsh.m_buffer);
+    std::swap(m_read_index, rsh.m_read_index);
+    std::swap(m_write_index, rsh.m_write_index);
 }

@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-/*大端序与主机序互转*/
+/*大端序(网络序)与主机序互转*/
 
 int64_t BigEndianToHost(int64_t value);
 int64_t HostToBigEndian(int64_t value);

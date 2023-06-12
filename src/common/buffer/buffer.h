@@ -13,16 +13,18 @@
 TODO:目前不是线程安全,后期会拓展线程安全buffer
 */
 
+static const size_t kInitSize = 1024;
+
 static std::string dummy("");
 
 class Buffer
 {
 public:
-    Buffer();
+    Buffer(size_t init_size = kInitSize);
     ~Buffer();
 
-    void push(const char* data,size_t size);
-    void insert(const char* data, size_t size);
+    void insert(const void* data, size_t size);
+    void push(const void* data,size_t size);
 
     /*暂时不提供
     void pop(size_t size, char* data) {};*/
@@ -48,7 +50,7 @@ public:
     void pushUint16(uint16_t data);
 	void pushInt8(int8_t data);
     void pushUint8(uint8_t data);
-    void pushString(std::string& str);
+    void pushString(const std::string& str);
     void pushCString(const char* cstr, size_t size);
     void insertCString(const char* cstr,size_t start_index , size_t size);
 
@@ -64,25 +66,38 @@ public:
     size_t peekCString(std::string& str, size_t size);
     size_t peekCString(char* data, size_t size);
 
+public:
+    size_t readableSize();
+    size_t writableSize();
+    char* begin();
+    const char* begin() const;
+
+protected:
+	void ensureWritableSize(size_t len);
+	void makeSpace(size_t len);
+
 private:
 	std::vector<char> m_buffer;
+    size_t m_read_index;
+    size_t m_write_index;
 };
 
 template <typename T>
 void Buffer::push(const T& data)
 {
-    char buf[32] = {0};
-    memcpy(buf, &data, sizeof data);
-    push(buf, sizeof data);
+    push(&data, sizeof data);
 }
 
 template <typename T>
 bool Buffer::peek(T& data)
 {
     size_t sc = sizeof data;
-    if (sc > size())
+
+    if (sc > readableSize())
         return false;
+
     std::string str = get(sc);
+
     data = *(reinterpret_cast<T*>((char*)str.data()));
     return true;
 }
