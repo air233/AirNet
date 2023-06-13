@@ -1,6 +1,6 @@
 #include "InetAddress.h"
-#include "common/until/encoding.h"
-#include "common/log/log.h"
+#include "../../common/until/encoding.h"
+#include "../../common/log/log.h"
 #include <sstream>
 #include <iostream>
 

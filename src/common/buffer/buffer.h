@@ -66,9 +66,13 @@ public:
     size_t peekCString(std::string& str, size_t size);
     size_t peekCString(char* data, size_t size);
 
+    void append(const Buffer& buf);
+    void drop(size_t size);
+    void dropAll();
+
 public:
-    size_t readableSize();
-    size_t writableSize();
+    size_t readableSize() const;
+    size_t writableSize() const;
     char* begin();
     const char* begin() const;
 

@@ -176,12 +176,32 @@ size_t Buffer::peekCString(char* data, size_t size)
    return str.size();
 }
 
-size_t Buffer::readableSize()
+void Buffer::append(const Buffer& buf)
+{
+    pushCString(buf.begin() + m_read_index, buf.readableSize());
+}
+
+void Buffer::drop(size_t size)
+{
+    m_read_index += size;
+    if (m_read_index > m_write_index)
+    {
+        m_read_index = m_write_index;
+    }
+}
+
+void Buffer::dropAll()
+{
+    m_read_index = 0;
+    m_write_index = 0;
+}
+
+size_t Buffer::readableSize() const
 {
     return m_write_index - m_read_index;
 }
 
-size_t Buffer::writableSize()
+size_t Buffer::writableSize() const
 {
     return m_buffer.size() - m_write_index;
 }

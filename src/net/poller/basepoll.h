@@ -3,17 +3,9 @@
 class BasePoll
 {
 public:
-	BasePoll();
-	~BasePoll();
+	BasePoll() {};
+	~BasePoll() {};
 
 private:
 
 };
-
-BasePoll::BasePoll()
-{
-}
-
-BasePoll::~BasePoll()
-{
-}

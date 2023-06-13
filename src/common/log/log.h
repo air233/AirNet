@@ -19,7 +19,7 @@
 #define DEBUG(...) default_log.log("DEBUG",__FILE__,__FUNCTION__,__LINE__,__VA_ARGS__)
 #define INFO(...)  default_log.log("INFO",__FILE__,__FUNCTION__,__LINE__,__VA_ARGS__)
 #define WARN(...)  default_log.log("WARN",__FILE__,__FUNCTION__,__LINE__,__VA_ARGS__)
-#define ERROR(...) default_log.log("ERROR",__FILE__,__FUNCTION__,__LINE__,__VA_ARGS__)
+#define ERR(...) default_log.log("ERROR",__FILE__,__FUNCTION__,__LINE__,__VA_ARGS__)
 #define FATAL(...) default_log.log("FATAL",__FILE__,__FUNCTION__,__LINE__,__VA_ARGS__)
 
 //TODO:Œ¥ π”√
@@ -30,7 +30,7 @@
 class Log
 {
 public:
-	Log(const std::string& log_path = std::string("./log/"),const std::string& file_name = std::string("log.log"), int32_t level=0,int32_t type=0);
+	Log(const std::string& log_path = std::string("./log/"),const std::string& file_name = std::string("log"), int32_t level=0,int32_t type=0);
 	~Log();
 
 	FileStream& logstream();
