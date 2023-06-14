@@ -47,7 +47,7 @@ public:
 	virtual Buffer* inputBuffer() = 0;
 	virtual Buffer* outputBuffer() = 0;
 
-	virtual int32_t fd() = 0;
+	virtual SOCKET fd() = 0;
 	virtual int32_t getError() = 0;
 };
 
@@ -88,6 +88,7 @@ public:
 	virtual void close(uint64_t net_id) = 0;
 
 	virtual std::shared_ptr<INetObj> getNetObj(uint64_t net_id) = 0;
+	virtual NetMode getNetMode() = 0;
 
 	void setAcceptCallback(AcceptCallback callback) { m_onAccept = callback; }
 	void setConnectCallback(ConnectCallback callback) { m_onConnect = callback; }

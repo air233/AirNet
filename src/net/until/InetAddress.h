@@ -1,9 +1,9 @@
 #pragma once
 #include <string>
+#include "../nettype.h"
 #ifdef _WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#define sa_family_t ADDRESS_FAMILY
 #else
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -19,13 +19,18 @@ public:
 	explicit InetAddress(uint16_t port = 0, bool loopbackOnly = false, bool ipv6 = false);
 	InetAddress(std::string ip, uint16_t port, bool ipv6 = false);
 
-	std::string toIp();
-	
-	std::string toIpPort();
-	
 	uint16_t port();
-
+	std::string toIp();
+	std::string toIpPort();
 	sa_family_t family();
+
+	const struct sockaddr* getSockAddr();
+	const struct sockaddr* getSockAddr4();
+	const struct sockaddr* getSockAddr6();
+
+	uint32_t ipv4NetEndian() const;
+	uint16_t portNetEndian() const;
+
 private:
 	union
 	{

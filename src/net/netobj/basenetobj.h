@@ -7,7 +7,7 @@
 class BaseNetObj : public  INetObj
 {
 public:
-	BaseNetObj(uint64_t net_id);
+	BaseNetObj(uint64_t net_id, SOCKET fd);
 	virtual ~BaseNetObj() {};
 
 	uint64_t getNetID() override;
@@ -20,7 +20,7 @@ public:
 	virtual Buffer* inputBuffer() override;
 	virtual Buffer* outputBuffer() override;
 
-	int32_t fd() override;
+	SOCKET fd() override;
 	int32_t getError() override;
 
 	//以下接口不暴露:
@@ -29,9 +29,11 @@ public:
 	void send(const char* data, size_t len);
 	bool isListen();
 
+	void setlocalAddress(InetAddress& localAddr);
+	void setpeerAddress(InetAddress& peerAddr);
 protected:
 	uint64_t m_net_id;
-	int32_t m_fd;
+	SOCKET m_fd;
 	int32_t m_error;
 	uint32_t m_net_mode;
 	uint32_t m_net_state;

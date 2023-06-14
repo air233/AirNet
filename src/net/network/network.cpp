@@ -3,6 +3,16 @@
 #include "socket/udpsocket.h"
 #include "socket/kcpsocket.h"
 
+
+#ifdef _WIN32
+#include <winsock2.h>
+#else
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#endif
+
 #define NETDEBUG m_log.Debug()
 #define NETINFO m_log.Error()
 #define NETWARN m_log.Warn()
@@ -35,10 +45,15 @@ std::shared_ptr<BaseSocket> Network::makeSocket(NetMode mode)
 
 Network::Network(NetMode mode):
 	INetWrok(mode),
+	m_mode(mode),
 	m_net_id(0), 
 	m_init(0), 
-	m_listen_socket(Network::makeSocket(mode)),
-	m_log("./log/network/","network")
+	//m_listen_socket(Network::makeSocket(mode)),
+	m_log("./log/network/","network"),
+	m_idle_fd(-1),
+	m_linger(0),
+	m_ssl(0),
+	m_epoll_et(0)
 {
 
 }
@@ -96,6 +111,32 @@ uint64_t Network::getNetID()
 	return m_net_id++;
 }
 
+//TODO:创建非阻塞套接字
+SOCKET Network::createSocket()
+{
+	SOCKET fd = INVALID_SOCKET;
+
+	if (m_mode == TCP)
+	{
+		fd = socket(AF_INET, SOCK_STREAM, 0);
+	}
+	else if (m_mode == UDP || m_mode == KCP)
+	{
+
+	}
+		
+	return fd;
+}
+
+void Network::closeSocket(SOCKET socket)
+{
+#ifdef _WIN32
+	closesocket(socket);
+#else
+	::close(socket);
+#endif
+}
+
 uint64_t Network::linsten(InetAddress& address)
 {
 	return 0;
@@ -142,4 +183,9 @@ std::shared_ptr<INetObj> Network::getNetObj(uint64_t net_id)
 	{
 		return nullptr;
 	}
+}
+
+NetMode Network::getNetMode()
+{
+	return m_mode;
 }

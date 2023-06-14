@@ -1,9 +1,9 @@
 #include "basenetobj.h"
 #include "../nettype.h"
 
-BaseNetObj::BaseNetObj(uint64_t net_id):
+BaseNetObj::BaseNetObj(uint64_t net_id, SOCKET fd):
 	m_net_id(net_id),
-	m_fd(-1),
+	m_fd(fd),
 	m_net_mode(NONE),
 	m_net_state(Disconnected),
 	m_error(0),
@@ -81,5 +81,15 @@ void BaseNetObj::send(const char* data, size_t len)
 bool BaseNetObj::isListen()
 {
 	return m_listen;
+}
+
+void BaseNetObj::setlocalAddress(InetAddress& localAddr)
+{
+	m_localAddr = localAddr;
+}
+
+void BaseNetObj::setpeerAddress(InetAddress& peerAddr)
+{
+	m_peerAddr = peerAddr;
 }
 

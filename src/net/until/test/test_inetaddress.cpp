@@ -61,3 +61,10 @@ TEST(testcase3, resolve)
 		std::cout << "Unable to resolve google.com" << std::endl;
 	}
 }
+
+TEST(testcase4, addr)
+{
+	InetAddress addr(443);
+	auto padd = addr.getSockAddr();
+	std::cout << padd->sa_family << "," << padd->sa_data;
+}

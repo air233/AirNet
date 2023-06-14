@@ -20,6 +20,7 @@ bool InetAddress::resolve(std::string hostname, InetAddress* result)
 	}
 	int status = getaddrinfo(hostname.c_str(), nullptr, &hints, &res);
 	WSACleanup();
+
 	if (status != 0) {
 		// Ω‚Œˆ ß∞‹
 		LOG_ERROR << "getaddrinfo failed with error: " << status;
@@ -31,7 +32,6 @@ bool InetAddress::resolve(std::string hostname, InetAddress* result)
 		struct sockaddr_in* ipv4 = reinterpret_cast<struct sockaddr_in*>(res->ai_addr);
 		result->m_addr.sin_family = AF_INET;
 		result->m_addr.sin_port = ipv4->sin_port;
-		LOG_DEBUG << "AF_INET port: " << ipv4->sin_port;
 		result->m_addr.sin_addr = ipv4->sin_addr;
 	}
 	else if (res->ai_family == AF_INET6)
@@ -81,7 +81,7 @@ InetAddress::InetAddress(uint16_t port /*= 0*/, bool loopbackOnly /*= false*/, b
 	if (ipv6)
 	{
 		m_addr6.sin6_family = AF_INET6;
-		m_addr6.sin6_port = (uint16_t)HostToBigEndian((int16_t)port);
+		m_addr6.sin6_port = HostToBigEndian(port);
 		if (loopbackOnly) 
 		{
 			inet_pton(AF_INET6, "::1", &m_addr6.sin6_addr);
@@ -94,7 +94,7 @@ InetAddress::InetAddress(uint16_t port /*= 0*/, bool loopbackOnly /*= false*/, b
 	else 
 	{
 		m_addr.sin_family = AF_INET;
-		m_addr.sin_port = (uint16_t)HostToBigEndian((int16_t)port);
+		m_addr.sin_port = HostToBigEndian(port);
 		if (loopbackOnly) 
 		{
 			inet_pton(AF_INET, "127.0.0.1", &m_addr.sin_addr);
@@ -112,13 +112,13 @@ InetAddress::InetAddress(std::string ip, uint16_t port, bool ipv6 /*= false*/)
 	if (ipv6 || strchr(ip.c_str(), ':'))
 	{
 		m_addr6.sin6_family = AF_INET6;
-		m_addr6.sin6_port = (uint16_t)HostToBigEndian((int16_t)port);
+		m_addr6.sin6_port = HostToBigEndian(port);
 		inet_pton(AF_INET6, ip.c_str(), &m_addr6.sin6_addr);
 	}
 	else
 	{
 		m_addr.sin_family = AF_INET;
-		m_addr.sin_port = (uint16_t)HostToBigEndian((int16_t)port);
+		m_addr.sin_port = HostToBigEndian(port);
 		inet_pton(AF_INET, ip.c_str(), &m_addr.sin_addr);
 	}
 }
@@ -160,17 +160,49 @@ std::string InetAddress::toIpPort()
 		ss << "]";
 	}
 	ss << ":";
-	ss << (uint16_t)BigEndianToHost((int16_t)m_addr.sin_port);
+	ss << BigEndianToHost(m_addr.sin_port);
 	return ss.str();
 }
 
 uint16_t InetAddress::port()
 {
-	return BigEndianToHost((int16_t)m_addr.sin_port);
+	return BigEndianToHost(m_addr.sin_port);
 }
 
 sa_family_t InetAddress::family()
 {
 	return m_addr.sin_family;
+}
+
+const struct sockaddr* InetAddress::getSockAddr()
+{
+	if (family() == AF_INET)
+	{
+		return getSockAddr4();
+	}
+	else
+	{
+		return getSockAddr6();
+	}
+}
+
+const struct sockaddr* InetAddress::getSockAddr4()
+{
+	return static_cast<const struct sockaddr*>((const void*)(&m_addr));
+}
+
+const struct sockaddr* InetAddress::getSockAddr6()
+{
+	return static_cast<const struct sockaddr*>((const void*)(&m_addr6));
+}
+
+uint32_t InetAddress::ipv4NetEndian() const
+{
+	return m_addr.sin_addr.s_addr;
+}
+
+uint16_t InetAddress::portNetEndian() const
+{
+	return m_addr.sin_port;
 }
 
