@@ -74,15 +74,25 @@ public:
 	virtual void update() = 0;
 	virtual void stop() = 0;
 
-	virtual void setLingerZeroOpt(bool bEnable) = 0;
 	virtual void setOpenSSL(bool bEnable) = 0;
 
+	virtual uint64_t linstenTCP(InetAddress& address, TCPServerConfig& config) = 0;
+	virtual uint64_t linstenTCP(std::string ip, uint16_t port, TCPServerConfig& config) = 0;
 	virtual uint64_t linsten(InetAddress& address) = 0;
-	virtual uint64_t linsten(std::string ip, std::string port) = 0;
+	virtual uint64_t linsten(std::string ip, uint16_t port) = 0;
 
-	virtual uint64_t asynConnect(InetAddress& address, uint32_t time) = 0;
-	virtual uint64_t connect(InetAddress& address, uint32_t time) = 0;
-	virtual uint64_t connect(std::string ip, std::string port, uint32_t time) = 0;
+	/*异步连接
+	* 返回连接对象NetID
+	*/
+	virtual uint64_t asynConnect(InetAddress& address, uint64_t timeout = 10000) = 0;
+	virtual uint64_t asynConnect(std::string ip, uint16_t port, uint64_t timeout = 10000) = 0;
+
+	/*同步连接 
+	* 连接成功返回连接对象NetID
+	* 连接失败返回0
+	*/
+	virtual uint64_t connect(InetAddress& address, uint64_t timeout=10000) = 0;
+	virtual uint64_t connect(std::string ip, uint16_t port, uint64_t timeout=10000) = 0;
 
 	virtual bool send(uint64_t net_id, const char* data, size_t size) = 0;
 	virtual void close(uint64_t net_id) = 0;

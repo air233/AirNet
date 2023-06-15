@@ -18,15 +18,16 @@ ${NET_DIR}
 #link_directories(${LIB_DIR}/googletest/lib)
 
 add_executable(network_test
+
 "${COMMON_DIR}/until/encoding.cpp"
 "${COMMON_DIR}/until/times.cpp"
 "${COMMON_DIR}/log/log.cpp"
 "${COMMON_DIR}/log/filestream.cpp"
+"${COMMON_DIR}/buffer/buffer.cpp"
 "${NET_DIR}/network/network.cpp"
-"${NET_DIR}/socket/basesocket.cpp"
-"${NET_DIR}/socket/kcpsocket.cpp"
-"${NET_DIR}/socket/tcpsocket.cpp"
-"${NET_DIR}/socket/udpsocket.cpp"
+"${NET_DIR}/socket/socketops.cpp"
+"${NET_DIR}/netobj/basenetobj.cpp"
+"${NET_DIR}/netobj/tcpnetobj.cpp"
 "${NET_DIR}/until/inetAddress.cpp"
 "${NET_DIR}/inetwork.cpp"
 

@@ -18,15 +18,18 @@ public:
 public:
 	explicit InetAddress(uint16_t port = 0, bool loopbackOnly = false, bool ipv6 = false);
 	InetAddress(std::string ip, uint16_t port, bool ipv6 = false);
+	explicit InetAddress(const struct sockaddr_in& addr);
+	explicit InetAddress(const struct sockaddr_in6& addr);
+	explicit InetAddress(const struct sockaddr_storage addr);
 
 	uint16_t port();
 	std::string toIp();
 	std::string toIpPort();
 	sa_family_t family();
 
-	const struct sockaddr* getSockAddr();
-	const struct sockaddr* getSockAddr4();
-	const struct sockaddr* getSockAddr6();
+	struct sockaddr* getSockAddr();
+	struct sockaddr* getSockAddr4();
+	struct sockaddr* getSockAddr6();
 
 	uint32_t ipv4NetEndian() const;
 	uint16_t portNetEndian() const;

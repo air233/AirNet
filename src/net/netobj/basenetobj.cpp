@@ -7,7 +7,8 @@ BaseNetObj::BaseNetObj(uint64_t net_id, SOCKET fd):
 	m_net_mode(NONE),
 	m_net_state(Disconnected),
 	m_error(0),
-	m_listen(0)
+	m_listen(0),
+	m_network(nullptr)
 {
 
 }
@@ -47,7 +48,7 @@ Buffer* BaseNetObj::outputBuffer()
 	return &m_output_buf;
 }
 
-int32_t BaseNetObj::fd()
+SOCKET BaseNetObj::fd()
 {
 	return m_fd;
 }
@@ -64,13 +65,25 @@ bool BaseNetObj::connect(InetAddress& address, uint64_t outms)
 	return false;
 }
 
-bool BaseNetObj::listen(InetAddress& address)
+bool BaseNetObj::asynConnect(InetAddress& address, uint64_t outms)
+{
+	m_peerAddr = address;
+
+	return false;
+}
+
+bool BaseNetObj::bind(InetAddress& address)
 {
 	m_localAddr = address;
 
+	return true;
+}
+
+bool BaseNetObj::listen()
+{
 	m_listen = 1;
 
-	return false;
+	return true;
 }
 
 void BaseNetObj::send(const char* data, size_t len)
@@ -91,5 +104,10 @@ void BaseNetObj::setlocalAddress(InetAddress& localAddr)
 void BaseNetObj::setpeerAddress(InetAddress& peerAddr)
 {
 	m_peerAddr = peerAddr;
+}
+
+void BaseNetObj::setNetwork(Network* network)
+{
+	m_network = network;
 }
 

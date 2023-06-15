@@ -11,6 +11,7 @@
 #endif
 
 /*Socket 操作*/
+
 bool setNonBlock(SOCKET sockfd);
 
 SOCKET createFd();
@@ -25,6 +26,7 @@ int32_t connectSocket(SOCKET sockfd, struct sockaddr* addr, int32_t& error);
 
 int32_t bindSocket(SOCKET sockfd, struct sockaddr* addr, int32_t& error);
 
+void shutdownSocketWrite(SOCKET sockfd);
 void closeSocket(SOCKET sockfd);
 
 int32_t getLocalAddr(SOCKET sockfd, sockaddr_storage& localaddr);
@@ -35,7 +37,11 @@ int32_t getPeerAddr(SOCKET sockfd, sockaddr_storage& peeraddr);
 int32_t getPeerAddr(SOCKET sockfd, sockaddr_in& peeraddr);
 int32_t getPeerAddr6(SOCKET sockfd, sockaddr_in6& peeraddr);
 
+/*检测是否可读可写*/
+int32_t selectSocket(SOCKET sockfd, int64_t timeout);
 
+ssize_t writeSocket(SOCKET sockfd, const void* buf, size_t count);
+ssize_t readSocket(SOCKET sockfd, void* buf, size_t count);
 //
 //
 //ssize_t read(SOCKET sockfd, void* buf, size_t count);
@@ -43,7 +49,7 @@ int32_t getPeerAddr6(SOCKET sockfd, sockaddr_in6& peeraddr);
 ////TODO:Windows 是否支持
 //ssize_t readv(SOCKET sockfd, const struct iovec* iov, int iovcnt);
 //
-//ssize_t write(SOCKET sockfd, const void* buf, size_t count);
+
 //
 //void shutdownWrite(SOCKET sockfd);
 //

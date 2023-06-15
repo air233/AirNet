@@ -234,11 +234,13 @@ int32_t bindSocket(SOCKET sockfd, struct sockaddr* addr, int32_t& error)
 	return ret;
 }
 
-bool listenSocket(SOCKET sockfd)
+void shutdownSocketWrite(SOCKET sockfd)
 {
-	int ret = ::listen(sockfd, SOMAXCONN);
-
-	return ret >= 0;
+#ifdef _WIN32
+	shutdown(sockfd, SD_SEND);
+#else
+	shutdown(sockfd, SHUT_WR);
+#endif
 }
 
 int32_t listenSocket(SOCKET sockfd, int32_t& error)
@@ -259,39 +261,56 @@ int32_t listenSocket(SOCKET sockfd, int32_t& error)
 	return ret;
 }
 
-//int32_t connectSocket(SOCKET sockfd, const struct sockaddr* addr)
-//{
-//
-//}
+//不可读不可写 0
+//只可读 1
+//只可写 2
+//可读可写 3
+int32_t selectSocket(SOCKET sockfd, int64_t timeout)
+{
+	int ret = 0;
 
-//int32_t connect(SOCKET sockfd, const struct sockaddr* addr)
-//{
-//	return ::connect(sockfd, addr, (socklen_t)(sizeof sockaddr_in6));
-//}
+	timeval times;
+	times.tv_usec = timeout * 1000;
 
-//int32_t connect(SOCKET sockfd, const struct sockaddr_in* addr4)
-//{
-//	return ::connect(sockfd, addr4, (socklen_t)(sizeof sockaddr_in));
-//}
-//
-//int32_t connect(SOCKET sockfd, const struct sockaddr_in6* addr6)
-//{
-//	return ::connect(sockfd, addr6, (socklen_t)(sizeof sockaddr_in6));
-//}
-//
-//bool bind(SOCKET sockfd, const struct sockaddr* addr)
-//{
-//	int ret = ::bind(sockfd, addr, (socklen_t)(sizeof sockaddr_in6));
-//	
-//	return ret >= 0;
-//}
-//
-//bool listen(SOCKET sockfd)
-//{
-//	int ret = ::listen(sockfd, SOMAXCONN);
-//	
-//	return ret >= 0;
-//}
+	fd_set readfds;
+	FD_ZERO(&readfds);
+	FD_SET(sockfd, &readfds);
+	
+	fd_set writefds;
+	FD_ZERO(&writefds);
+	FD_SET(sockfd, &writefds);
 
+	if (select(sockfd+1, &readfds, &writefds, NULL, &times) > 0)
+	{
+		if (FD_ISSET(sockfd, &readfds))
+		{
+			ret |= 1 << 0;
+		}
 
+		if (FD_ISSET(sockfd, &writefds))
+		{
+			ret |= 1 << 1;
+		}
+	}
+
+	return ret;
+}
+
+ssize_t writeSocket(SOCKET sockfd, const void* buf, size_t count)
+{
+#ifdef _WIN32
+	return ::send(sockfd, (const char*)buf, count, 0);
+#else
+	return ::write(sockfd, buf, count);
+#endif
+}
+
+ssize_t readSocket(SOCKET sockfd, void* buf, size_t count)
+{
+#ifdef _WIN32
+	return ::recv(sockfd, (char*)buf, count, 0);
+#else
+	return ::read(sockfd, buf, count);
+#endif
+}
 

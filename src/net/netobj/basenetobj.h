@@ -4,6 +4,8 @@
 #include "../until/inetAddress.h"
 #include "../../common/buffer/buffer.h"
 
+class Network;
+
 class BaseNetObj : public  INetObj
 {
 public:
@@ -23,15 +25,20 @@ public:
 	SOCKET fd() override;
 	int32_t getError() override;
 
+public:
 	//以下接口不暴露:
-	bool connect(InetAddress& address,uint64_t outms);
-	bool listen(InetAddress& address);
-	void send(const char* data, size_t len);
-	bool isListen();
+	virtual bool bind(InetAddress& address);
+	virtual bool listen();
+	virtual bool connect(InetAddress& address,uint64_t outms);
+	virtual bool asynConnect(InetAddress& address, uint64_t outms);
+	virtual void send(const char* data, size_t len);
+	virtual bool isListen();
 
 	void setlocalAddress(InetAddress& localAddr);
 	void setpeerAddress(InetAddress& peerAddr);
+	void setNetwork(Network* network);
 protected:
+	
 	uint64_t m_net_id;
 	SOCKET m_fd;
 	int32_t m_error;
@@ -44,5 +51,7 @@ protected:
 
 	Buffer m_input_buf;
 	Buffer m_output_buf;
+
+	Network* m_network;
 };
 

@@ -123,6 +123,26 @@ InetAddress::InetAddress(std::string ip, uint16_t port, bool ipv6 /*= false*/)
 	}
 }
 
+InetAddress::InetAddress(const struct sockaddr_in& addr):m_addr(addr)
+{
+}
+
+InetAddress::InetAddress(const struct sockaddr_in6& addr):m_addr6(addr)
+{
+}
+
+InetAddress::InetAddress(const struct sockaddr_storage addr)
+{
+	if (addr.ss_family == AF_INET)
+	{
+		m_addr = *((sockaddr_in*)&addr);
+	}
+	else
+	{
+		m_addr6 = *((sockaddr_in6*)&addr);
+	}
+}
+
 std::string InetAddress::toIp()
 {
 	char buffer[INET6_ADDRSTRLEN];
@@ -174,7 +194,7 @@ sa_family_t InetAddress::family()
 	return m_addr.sin_family;
 }
 
-const struct sockaddr* InetAddress::getSockAddr()
+struct sockaddr* InetAddress::getSockAddr()
 {
 	if (family() == AF_INET)
 	{
@@ -186,14 +206,14 @@ const struct sockaddr* InetAddress::getSockAddr()
 	}
 }
 
-const struct sockaddr* InetAddress::getSockAddr4()
+struct sockaddr* InetAddress::getSockAddr4()
 {
-	return static_cast<const struct sockaddr*>((const void*)(&m_addr));
+	return static_cast<struct sockaddr*>((void*)(&m_addr));
 }
 
-const struct sockaddr* InetAddress::getSockAddr6()
+struct sockaddr* InetAddress::getSockAddr6()
 {
-	return static_cast<const struct sockaddr*>((const void*)(&m_addr6));
+	return static_cast<struct sockaddr*>((void*)(&m_addr6));
 }
 
 uint32_t InetAddress::ipv4NetEndian() const

@@ -20,7 +20,7 @@ int main1()
 	std::cout << "main" << std::endl;
 
 	SOCKET fd = createTCPSocket(AF_INET);
-	std::cout << "SOCKET:"<< fd << std::endl;
+	std::cout << "SOCKET:" << fd << std::endl;
 
 	struct sockaddr_in serverAddress;
 	serverAddress.sin_family = AF_INET;
@@ -29,28 +29,58 @@ int main1()
 	int ret,error = 0;
 
 	ret = 0;
-	while (true)
+	//while (true)
+	//{
+	//	ret = connectSocket(fd, (sockaddr*)&serverAddress, error);
+
+	//	if (ret != 0)
+	//	{
+	//		std::cout << "SOCKET error:" << error << std::endl;
+
+	//		if(error == WSAEWOULDBLOCK || error == WSAEALREADY) continue;
+	//		
+	//		if (error == WSAEISCONN)
+	//		{
+	//			ret = 0;
+	//		}
+
+	//		break;
+	//	}
+	//	else
+	//	{
+	//		break;
+	//	}
+	//}
+
+	ret = SOCKET_ERROR;
+	if (connectSocket(fd, (sockaddr*)&serverAddress, error) < 0)
 	{
-		ret = connectSocket(fd, (sockaddr*)&serverAddress, error);
-
-		if (ret != 0)
+		std::cout << "connectSocket . error:" << error << std::endl;
+		if (error == WSAEWOULDBLOCK || error == WSAEALREADY)
 		{
-			std::cout << "SOCKET error:" << error << std::endl;
+			//fd_set fds;
+			//FD_ZERO(&fds);
+			//FD_SET(fd, &fds);
+			//timeval timeout;
+			//timeout.tv_sec = 10;
 
-			if(error == WSAEWOULDBLOCK || error == WSAEALREADY) continue;
-			
-			if (error == WSAEISCONN)
+			//int n = select(fd+1,NULL, &fds,NULL, &timeout);
+			//std::cout << " select n:" << n << std::endl;
+			//if (n != 0)
+			//{
+			//	std::cout << "connectSocket . select succ:" << n << std::endl;
+			//	ret = 1;
+			//}
+			int n = selectSocket(fd, 10);
+
+			if (n != 0)
 			{
-				ret = 0;
+				std::cout << "connectSocket . select succ:" << n << std::endl;
+				ret = 1;
 			}
-
-			break;
-		}
-		else
-		{
-			break;
 		}
 	}
+
 
 	if (ret != SOCKET_ERROR)
 	{
@@ -84,7 +114,7 @@ int pp(struct sockaddr* addr)
 }
 
 //服务器
-int main()
+int main2()
 {
 	WSADATA wsaData;
 	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
@@ -101,7 +131,7 @@ int main()
 	struct sockaddr_in address;
 	address.sin_family = AF_INET;
 	address.sin_addr.s_addr = inet_addr("0.0.0.0");
-	address.sin_port = htons(8888); // 目标服务器端口
+	address.sin_port = htons(8888); // 服务器端口
 
 	std::cout << "address len:" << sizeof address << std::endl;
 	if (bindSocket(server_fd, (sockaddr*)&address, error) < 0)
@@ -141,5 +171,12 @@ int main()
 	//pp((sockaddr*)&address);
 
 	WSACleanup();
+	return 0;
+}
+
+int main()
+{
+	main1();
+
 	return 0;
 }

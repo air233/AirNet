@@ -10,6 +10,12 @@ public:
 	void setNoDelay(bool on);
 	void setReuseAddr(bool on);
 	void setKeepAlive(bool on);
+	void setLingerZero(bool on);
+
+	bool bind(InetAddress& address) override;
+	bool listen() override;
+	bool connect(InetAddress& address, uint64_t outms) override;
+	bool asynConnect(InetAddress& address, uint64_t outms) override;
 
 	//TCPSocket m_sokcet_obj;
 };
