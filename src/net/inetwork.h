@@ -12,14 +12,14 @@ XXXXCallback 事件回调接口
 typedef std::function<void(const uint64_t)> AcceptCallback;
 void defaultAcceptCallback(uint64_t);
 
-typedef std::function<void (const uint64_t)> ConnectCallback;
-void defaultConnectCallback(uint64_t);
+typedef std::function<void (const uint64_t, int32_t errcode)> ConnectCallback;
+void defaultConnectCallback(uint64_t, int32_t);
 
 typedef std::function<void (const uint64_t)> DisConnectCallback;
 void defaultDisConnectCallback(uint64_t);
 
-typedef std::function<void (const uint64_t, Buffer*,size_t)> ReceiveCallback;
-void defaultReceiveCallback(const uint64_t, Buffer*, size_t);
+typedef std::function<void (const uint64_t, Buffer*)> ReceiveCallback;
+void defaultReceiveCallback(const uint64_t, Buffer*);
 
 typedef std::function<void(const uint64_t,int32_t)> ErrorCallback;
 void defaultErrorCallback(uint64_t, int32_t);
@@ -70,12 +70,14 @@ public:
 	virtual ~INetWrok() {};
 
 public:
+	/*生命周期函数*/
 	virtual bool start() = 0;
 	virtual void update() = 0;
 	virtual void stop() = 0;
 
 	virtual void setOpenSSL(bool bEnable) = 0;
 
+	/*服务器开启监听*/
 	virtual uint64_t linstenTCP(InetAddress& address, TCPServerConfig& config) = 0;
 	virtual uint64_t linstenTCP(std::string ip, uint16_t port, TCPServerConfig& config) = 0;
 	virtual uint64_t linsten(InetAddress& address) = 0;
@@ -100,13 +102,14 @@ public:
 	virtual std::shared_ptr<INetObj> getNetObj(uint64_t net_id) = 0;
 	virtual NetMode getNetMode() = 0;
 
+	/*设置回调函数*/
 	void setAcceptCallback(AcceptCallback callback) { m_onAccept = callback; }
 	void setConnectCallback(ConnectCallback callback) { m_onConnect = callback; }
 	void setDisConnectCallback(DisConnectCallback callback) { m_onDisconnect = callback; }
 	void setRecvCallback(ReceiveCallback callback) { m_onRecv = callback; }
 	void setErrorCallback(ErrorCallback callback) { m_onError = callback; }
 
-protected:
+public:
 	AcceptCallback m_onAccept;
 	ConnectCallback m_onConnect;
 	DisConnectCallback m_onDisconnect;
@@ -118,10 +121,4 @@ protected:
 /********************
 获取NetWork对象
 ********************/
-/*方式1
-INetWrok* getNetwork(NetMode mode);
-void rleaseNetwork(INetWrok** network);
-*/
-
-/*方式2*/
 std::shared_ptr<INetWrok> getNetwork(NetMode mode);

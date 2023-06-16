@@ -16,6 +16,6 @@ public:
 	bool listen() override;
 	bool connect(InetAddress& address, uint64_t outms) override;
 	bool asynConnect(InetAddress& address, uint64_t outms) override;
-
-	//TCPSocket m_sokcet_obj;
+	bool send(const char* data, size_t len) override;
+	bool close() override;
 };

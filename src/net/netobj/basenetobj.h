@@ -4,6 +4,8 @@
 #include "../until/inetAddress.h"
 #include "../../common/buffer/buffer.h"
 
+#include <mutex>
+
 class Network;
 
 class BaseNetObj : public  INetObj
@@ -24,15 +26,18 @@ public:
 
 	SOCKET fd() override;
 	int32_t getError() override;
-
+	void setError(int32_t error);
 public:
 	//以下接口不暴露:
 	virtual bool bind(InetAddress& address);
 	virtual bool listen();
 	virtual bool connect(InetAddress& address,uint64_t outms);
 	virtual bool asynConnect(InetAddress& address, uint64_t outms);
-	virtual void send(const char* data, size_t len);
+	virtual bool send(const char* data, size_t len);
 	virtual bool isListen();
+	virtual bool close();
+
+	//virtual SOCKET accept(int32_t& err);
 
 	void setlocalAddress(InetAddress& localAddr);
 	void setpeerAddress(InetAddress& peerAddr);
@@ -49,7 +54,10 @@ protected:
 	InetAddress m_localAddr;
 	InetAddress m_peerAddr;
 
+	std::mutex m_input_mutex;
 	Buffer m_input_buf;
+
+	std::mutex m_output_mutex;
 	Buffer m_output_buf;
 
 	Network* m_network;

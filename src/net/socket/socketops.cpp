@@ -296,17 +296,43 @@ int32_t selectSocket(SOCKET sockfd, int64_t timeout)
 	return ret;
 }
 
-ssize_t writeSocket(SOCKET sockfd, const void* buf, size_t count)
+ssize_t writeSocket(SOCKET sockfd, const void* buf, size_t count, int32_t& error)
 {
+	error = 0;
+	
+	ssize_t write_size = 0;
+	
 #ifdef _WIN32
-	return ::send(sockfd, (const char*)buf, count, 0);
+	//返回值大于等于 0，表示成功发送的字节数
+	//返回值为 SOCKET_ERROR，表示发生了严重的错误，可以通过 WSAGetLastError
+	write_size = ::send(sockfd, (const char*)buf, count, 0);
+
+	if (write_size == SOCKET_ERROR)
+	{
+		error = WSAGetLastError();
+	}
 #else
-	return ::write(sockfd, buf, count);
+	//返回值大于等于 0，表示成功写入的字节数。
+	//返回值等于 -1，表示写入失败，可能是由于发生了错误
+	// 且 errno 为 EAGAIN 或 EWOULDBLOCK，表示写入操作被阻塞，需要等待下一次写入机会。
+	write_size = ::write(sockfd, buf, count);
+	
+	if (write_size == -1)
+	{
+		error = errno;
+
+		if (error == EAGAIN || error == EWOULDBLOCK)
+		{
+			write_size = 0;
+		}
+	}
 #endif
+	return write_size;
 }
 
-ssize_t readSocket(SOCKET sockfd, void* buf, size_t count)
+ssize_t readSocket(SOCKET sockfd, void* buf, size_t count, int32_t& error)
 {
+	error = 0;
 #ifdef _WIN32
 	return ::recv(sockfd, (char*)buf, count, 0);
 #else

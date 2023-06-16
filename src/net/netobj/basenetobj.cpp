@@ -1,5 +1,6 @@
 #include "basenetobj.h"
 #include "../nettype.h"
+#include "../socket/socketops.h"
 
 BaseNetObj::BaseNetObj(uint64_t net_id, SOCKET fd):
 	m_net_id(net_id),
@@ -58,6 +59,11 @@ int32_t BaseNetObj::getError()
 	return m_error;
 }
 
+void BaseNetObj::setError(int32_t error)
+{
+	m_error = error;
+}
+
 bool BaseNetObj::connect(InetAddress& address, uint64_t outms)
 {
 	m_peerAddr = address;
@@ -86,15 +92,26 @@ bool BaseNetObj::listen()
 	return true;
 }
 
-void BaseNetObj::send(const char* data, size_t len)
+bool BaseNetObj::send(const char* data, size_t len)
 {
-	m_input_buf.pushCString(data, len);
+	return false;
 }
 
 bool BaseNetObj::isListen()
 {
 	return m_listen;
 }
+
+bool BaseNetObj::close()
+{
+	return false;
+}
+
+//SOCKET BaseNetObj::accept(int32_t& err)
+//{
+//	err = 0;
+//	return INVALID_SOCKET;
+//}
 
 void BaseNetObj::setlocalAddress(InetAddress& localAddr)
 {

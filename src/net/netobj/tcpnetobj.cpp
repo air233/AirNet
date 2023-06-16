@@ -1,5 +1,5 @@
 #include "tcpnetobj.h"
-
+#include <thread>
 #ifdef _WIN32
 #include <winsock2.h>
 #else
@@ -50,7 +50,7 @@ void TcpNetObj::setLingerZero(bool on)
 		::setsockopt(m_fd, SOL_SOCKET, SO_LINGER, (const char*)&opt, sizeof(opt));
 	}
 
-	m_network->NETERROR << "TCP server set lingerzero : " << on;
+	m_network->NETERROR << "TCP obj set lingerzero : " << on;
 }
 
 bool TcpNetObj::bind(InetAddress& address)
@@ -103,7 +103,7 @@ bool TcpNetObj::connect(InetAddress& address, uint64_t outms)
 		}
 		else
 		{
-			m_network->NETERROR << "TCP server connect fail. error:" << m_error;
+			m_network->NETERROR << "TCP obj connect fail. error:" << m_error;
 			return false;
 		}
 	}
@@ -117,6 +117,8 @@ bool TcpNetObj::connect(InetAddress& address, uint64_t outms)
 
 bool TcpNetObj::asynConnect(InetAddress& address, uint64_t outms)
 {
+	(void)outms;
+
 	m_peerAddr = address;
 
 	if (connectSocket(m_fd, address.getSockAddr(), m_error) < 0)
@@ -138,4 +140,40 @@ bool TcpNetObj::asynConnect(InetAddress& address, uint64_t outms)
 	}
 
 	return false;
+}
+
+bool TcpNetObj::send(const char* data, size_t len)
+{
+	ssize_t write_size = 0;
+	if (m_input_buf.size() == 0)
+	{
+		//直接写入socket
+		write_size = writeSocket(m_fd, data, len, m_error);
+		
+		if (write_size == -1)
+		{
+			m_network->NETERROR << "TCP obj send fail. error:" << m_error;
+
+			return false;
+		}
+	}
+
+	//剩余部分写入input buffer;
+	if (len > write_size)
+	{
+		std::lock_guard<std::mutex> mylockguard(m_input_mutex);
+		m_input_buf.pushCString(data + write_size, len - write_size);
+	}
+
+	return true;
+}
+
+bool TcpNetObj::close()
+{
+	closeSocket(m_fd);
+	m_fd = -1;
+	m_net_state = Disconnected;
+
+	m_network->NETERROR << "TCP obj close. net id:" << m_net_id;
+	return true;
 }
