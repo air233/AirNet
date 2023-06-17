@@ -42,6 +42,9 @@ int32_t selectSocket(SOCKET sockfd, int64_t timeout);
 
 ssize_t writeSocket(SOCKET sockfd, const void* buf, size_t count, int32_t& error);
 ssize_t readSocket(SOCKET sockfd, void* buf, size_t count, int32_t& error);
+
+
+
 //
 //
 //ssize_t read(SOCKET sockfd, void* buf, size_t count);

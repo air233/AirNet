@@ -21,8 +21,11 @@ public:
 	const InetAddress& localAddress() override;
 	const InetAddress& peerAddress() override;
 
+	std::mutex& inputMutex() override;
+	std::mutex& outputMutex() override;
 	virtual Buffer* inputBuffer() override;
 	virtual Buffer* outputBuffer() override;
+
 
 	SOCKET fd() override;
 	int32_t getError() override;
@@ -37,6 +40,12 @@ public:
 	virtual bool isListen();
 	virtual bool close();
 
+	void haveRead(bool enable);
+	void haveWrite(bool enable);
+	void haveAll(bool enable);
+
+	virtual uint8_t getIOType();
+
 	//virtual SOCKET accept(int32_t& err);
 
 	void setlocalAddress(InetAddress& localAddr);
@@ -50,6 +59,7 @@ protected:
 	uint32_t m_net_mode;
 	uint32_t m_net_state;
 	uint8_t m_listen;
+	uint8_t m_io_type;
 
 	InetAddress m_localAddr;
 	InetAddress m_peerAddr;
@@ -61,5 +71,6 @@ protected:
 	Buffer m_output_buf;
 
 	Network* m_network;
+
 };
 

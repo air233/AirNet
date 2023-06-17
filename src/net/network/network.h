@@ -12,6 +12,8 @@
 #include <set>
 #include <map>
 #include <mutex>
+#include <shared_mutex>
+#include <atomic>
 
 #define NETDEBUG getLog().Debug()
 #define NETINFO  getLog().Error()
@@ -56,32 +58,38 @@ public:
 	Log& getLog() { return m_log; };
 	void deleteNetObj(uint64_t net_id);
 	uint64_t getNetID();
-
+	SOCKET getListenSock();
 	//uint64_t processAccept(SOCKET sock,int32_t error);
 
 	void asyncConnectResult(uint64_t net_id, int32_t err);
 	void processAsynConnectResult();
 
-
+	/*增删改查*/
 	std::shared_ptr<BaseNetObj> makeNetObj(Network* network, sa_family_t family);
 	std::shared_ptr<BaseNetObj> getNetObj2(uint64_t net_id);
+	bool insertNetObj(std::shared_ptr<BaseNetObj> netObj,bool addPoll=false);
+	void removeNetObj(uint64_t net_id);
+
 private:
 	NetMode m_mode;
 	int32_t  m_init;
-	uint64_t m_net_id;
+	std::atomic<uint64_t> m_net_id;
 	
-	SOCKET m_idle_fd;/*空置ID*/
+	SOCKET m_idle_fd;/*空置Sock*/
 
+	/*网络对象,(主线程，IO线程)*/
+	std::shared_mutex m_net_mutex;
 	std::unordered_map<uint64_t, std::shared_ptr<BaseNetObj>> m_net_objs;
+
 	std::shared_ptr<BaseNetObj> m_server_obj;
 	std::shared_ptr<Poll> m_poll;
 
-	/*连接队列*/
+	/*异步连接队列 (主线程，IO线程)*/
 	std::mutex m_connect_mutex;
 	std::map<uint64_t,ConnectInfo> m_connecting;
 	std::set<uint64_t> m_connect_result;
 
-	std::queue<uint64_t> m_disconnect;
+	//std::queue<uint64_t> m_disconnect;
 	Log m_log;
 
 	/*设置*/

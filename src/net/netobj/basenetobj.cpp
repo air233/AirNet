@@ -9,6 +9,7 @@ BaseNetObj::BaseNetObj(uint64_t net_id, SOCKET fd):
 	m_net_state(Disconnected),
 	m_error(0),
 	m_listen(0),
+	m_io_type(IOREAD),
 	m_network(nullptr)
 {
 
@@ -39,9 +40,19 @@ const InetAddress& BaseNetObj::peerAddress()
 	return m_peerAddr;
 }
 
+std::mutex& BaseNetObj::inputMutex()
+{
+	return m_input_mutex;
+}
+
 Buffer* BaseNetObj::inputBuffer()
 {
 	return &m_input_buf;
+}
+
+std::mutex& BaseNetObj::outputMutex()
+{
+	return m_output_mutex;
 }
 
 Buffer* BaseNetObj::outputBuffer()
@@ -105,6 +116,47 @@ bool BaseNetObj::isListen()
 bool BaseNetObj::close()
 {
 	return false;
+}
+
+void BaseNetObj::haveRead(bool enable)
+{
+	if (enable)
+	{
+		m_io_type |= IOREAD;
+	}
+	else
+	{
+		m_io_type &= ~IOREAD;
+	}
+}
+
+void BaseNetObj::haveWrite(bool enable)
+{
+	if (enable)
+	{
+		m_io_type |= IOWRIT;
+	}
+	else
+	{
+		m_io_type &= ~IOWRIT;
+	}
+}
+
+void BaseNetObj::haveAll(bool enable)
+{
+	if (enable)
+	{
+		m_io_type |= IOREADWRIT;
+	}
+	else
+	{
+		m_io_type &= ~IOREADWRIT;
+	}
+}
+
+uint8_t BaseNetObj::getIOType()
+{
+	return m_io_type;
 }
 
 //SOCKET BaseNetObj::accept(int32_t& err)

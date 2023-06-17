@@ -11,6 +11,13 @@
 
 #define INVALID_NET_ID 0
 
+/*¶ÁÐ´ÊÂ¼þ*/
+#define IONONE 0
+#define IOREAD 1
+#define IOWRIT 2
+#define IOREADWRIT 3
+
+
 typedef struct TCPConfig
 {
 	bool delay;

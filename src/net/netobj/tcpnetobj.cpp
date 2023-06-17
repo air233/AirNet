@@ -50,7 +50,7 @@ void TcpNetObj::setLingerZero(bool on)
 		::setsockopt(m_fd, SOL_SOCKET, SO_LINGER, (const char*)&opt, sizeof(opt));
 	}
 
-	m_network->NETERROR << "TCP obj set lingerzero : " << on;
+	m_network->NETDEBUG << "TCP obj set lingerzero : " << on;
 }
 
 bool TcpNetObj::bind(InetAddress& address)
@@ -79,6 +79,9 @@ bool TcpNetObj::listen()
 	}
 
 	m_net_state = Listening;
+
+	//¹Ø×¢¿É¶Á
+	haveRead(true);
 
 	return true;
 }
@@ -129,6 +132,7 @@ bool TcpNetObj::asynConnect(InetAddress& address, uint64_t outms)
 		if (m_error == EINPROGRESS || m_error == EWOULDBLOCK || m_error == EAGAIN)
 #endif
 		{
+			haveWrite(true);
 			m_net_state = Connecting;
 			return true;
 		}
@@ -163,8 +167,9 @@ bool TcpNetObj::send(const char* data, size_t len)
 	{
 		std::lock_guard<std::mutex> mylockguard(m_input_mutex);
 		m_input_buf.pushCString(data + write_size, len - write_size);
+		haveWrite(true);
 	}
-
+	
 	return true;
 }
 

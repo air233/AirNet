@@ -3,17 +3,15 @@
 #include <thread>
 
 
-void Poll::workPoll()
-{
 
-}
 
-//主线程调用
+
+//(主线程调用）
 void Poll::processPoll()
 {
 	std::queue<NetJob> net_jobs;
 	{
-		std::lock_guard<std::mutex> mylockguard(m_mutex);
+		std::lock_guard<std::mutex> lockguard(m_mutex);
 		net_jobs.swap(m_net_jobs);
 	}
 	
@@ -37,8 +35,8 @@ void Poll::processPoll()
 			break;
 
 		case JobConnect:
-			/*netid,连接错误码*/
-			m_network->m_onConnect(job.m_net_id, netObj->getError());
+			/*netid,连接错误码 0为成功*/
+			m_network->m_onConnect(job.m_net_id, job.m_error);
 			break;
 
 		case JobDisconnect:
@@ -51,16 +49,22 @@ void Poll::processPoll()
 			break;
 
 		case JobError:
-			m_network->m_onError(job.m_net_id, netObj->getError());
-			m_network->deleteNetObj(job.m_net_id);
+			m_network->m_onError(job.m_net_id, job.m_error);
+			m_network->close(job.m_net_id);
 			break;
 
 		default:
-			m_network->NETDEBUG << "net job not type. id:" << job.m_net_id<<", type:"<< job.m_type;
+			m_network->NETDEBUG << "net job not type. net id:" << job.m_net_id<<", type:"<< job.m_type;
 			break;
 		}
-
-
 	}
-
 }
+
+void Poll::pushJob(NetJob& job)
+{
+	std::lock_guard<std::mutex> lockguard(m_mutex);
+
+	m_net_jobs.push(job);
+}
+
+

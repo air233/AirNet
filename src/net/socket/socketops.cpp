@@ -23,7 +23,11 @@ SOCKET createFd()
 
 SOCKET createTCPSocket(sa_family_t family)
 {
+#ifdef _WIN32
+	SOCKET sockfd = WSASocket(family, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, WSA_FLAG_OVERLAPPED);
+#else
 	SOCKET sockfd = ::socket(family, SOCK_STREAM, IPPROTO_TCP);
+#endif
 
 	if (false == setNonBlock(sockfd))
 	{
@@ -36,7 +40,11 @@ SOCKET createTCPSocket(sa_family_t family)
 
 SOCKET createUDPSocket(sa_family_t family)
 {
+#ifdef _WIN32
+	SOCKET sockfd = WSASocket(family, SOCK_DGRAM, IPPROTO_UDP, nullptr, 0, WSA_FLAG_OVERLAPPED);
+#else
 	SOCKET sockfd = ::socket(family, SOCK_DGRAM, IPPROTO_UDP);
+#endif
 
 	if (false == setNonBlock(sockfd))
 	{

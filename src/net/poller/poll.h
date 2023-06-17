@@ -1,12 +1,17 @@
 #pragma once
 #include "../nettype.h"
 #include "../netobj/basenetobj.h"
+
 #include <memory>
 #include <queue>
 #include <mutex>
+#include <map>
+#include <thread>
 
 #ifdef _WIN32
 #include <Windows.h>
+
+class PER_IO_CONTEXT;
 #else
 #endif
 
@@ -20,6 +25,7 @@ struct NetJob
 {
 	JobType m_type = JobNone;
 	uint64_t m_net_id = 0;
+	int32_t m_error = 0;
 };
 
 class Network;
@@ -38,20 +44,18 @@ public:
 	~Poll() {};
 
 	bool createPoll(Network* network);
-
 	void destoryPoll();
 
 	bool addPoll(std::shared_ptr<BaseNetObj> netObj);
-
 	void delPoll(std::shared_ptr<BaseNetObj> netObj);
-
 	int enablePoll(std::shared_ptr<BaseNetObj> netObj, bool read_enable, bool write_enable);
 
 	int32_t waitPoll();
-
 	void workPoll();
 
-	//处理函数
+	void pushJob(NetJob& job);
+
+	//main处理函数
 	void processPoll();
 
 private:
@@ -61,9 +65,15 @@ private:
 	/*任务列表*/
 	std::mutex m_mutex;
 	std::queue<NetJob> m_net_jobs;
+	std::vector<std::thread> m_threads;
 
 #ifdef _WIN32
 	HANDLE m_completionPort;
+	std::mutex m_iocontexts_mutex;
+	std::map<uint64_t, PER_IO_CONTEXT*> m_iocontexts;
+
+	void WorkerThread();
+	
 #else
 	int m_epollFd;
 #endif

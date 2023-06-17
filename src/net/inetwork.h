@@ -1,6 +1,7 @@
 #pragma once
 #include <functional>
 #include <memory>
+#include <mutex>
 #include "nettype.h"
 #include "until/inetAddress.h"
 
@@ -44,7 +45,10 @@ public:
 	virtual const InetAddress& localAddress() = 0;
 	virtual const InetAddress& peerAddress() = 0;
 
+	virtual std::mutex& inputMutex() = 0;
 	virtual Buffer* inputBuffer() = 0;
+
+	virtual std::mutex& outputMutex() = 0;
 	virtual Buffer* outputBuffer() = 0;
 
 	virtual SOCKET fd() = 0;

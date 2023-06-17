@@ -15,6 +15,25 @@
 #include <unistd.h>
 #endif
 
+Network::Network(NetMode mode):
+	INetWrok(mode),
+	m_mode(mode),
+	m_net_id(0), 
+	m_poll(new Poll()),
+	m_init(0), 
+	m_log("./log/network/","network"),
+	m_idle_fd(-1),
+	m_ssl(0),
+	m_epoll_et(0)
+{
+	
+}
+
+Network::~Network()
+{
+	rlease();
+}
+
 std::shared_ptr<BaseNetObj> Network::makeNetObj(Network* network, sa_family_t family)
 {
 	std::shared_ptr<BaseNetObj> netObj;
@@ -46,24 +65,6 @@ std::shared_ptr<BaseNetObj> Network::makeNetObj(Network* network, sa_family_t fa
 	return netObj;
 }
 
-Network::Network(NetMode mode):
-	INetWrok(mode),
-	m_mode(mode),
-	m_net_id(0), 
-	m_init(0), 
-	m_log("./log/network/","network"),
-	m_idle_fd(-1),
-	m_ssl(0),
-	m_epoll_et(0)
-{
-
-}
-
-Network::~Network()
-{
-	rlease();
-}
-
 bool Network::start()
 {
 	//if (m_init == 0)
@@ -83,9 +84,7 @@ bool Network::start()
 
 	m_idle_fd = createFd();
 
-	//TODO:开启工作线程
-
-	return true;
+	return m_poll->createPoll(this);
 }
 
 void Network::update()
@@ -102,9 +101,11 @@ void Network::update()
 
 void Network::stop()
 {
-	//TODO:关闭工作线程
-
 	m_poll->destoryPoll();
+
+	closeSocket(m_idle_fd);
+
+	m_server_obj->close();
 }
 
 void Network::setOpenSSL(bool bEnable)
@@ -145,10 +146,14 @@ uint64_t Network::linstenTCP(InetAddress& address, TCPServerConfig& config)
 		return INVALID_NET_ID;
 	}
 
+	if (false == insertNetObj(m_server_obj, true))
+	{
+		return INVALID_NET_ID;
+	}
+
+	NETDEBUG << "linstenTCP ip :" << address.toIpPort();
+
 	return m_server_obj->getNetID();
-
-
-	return 1;
 }
 
 uint64_t Network::linstenTCP(std::string ip, uint16_t port, TCPServerConfig& config)
@@ -167,15 +172,23 @@ void Network::rlease()
 #endif
 }
 
+/*TODO:需要测试多线程正确性*/
 /*保证唯一且不为0*/
 uint64_t Network::getNetID()
 {
 	while (true)
 	{
-		m_net_id++;
+		m_net_id.fetch_add(1);
 
 		if (m_net_id == 0)
-			m_net_id = 1;
+		{
+			bool exchange = false;
+			while (!exchange)
+			{
+				uint64_t expectet = 0;
+				exchange = m_net_id.compare_exchange_weak(expectet, 1);
+			}
+		}
 
 		//未使用的net_id
 		if (m_net_objs.find(m_net_id) == m_net_objs.end())
@@ -185,6 +198,16 @@ uint64_t Network::getNetID()
 	}
 
 	return m_net_id;
+}
+
+SOCKET Network::getListenSock()
+{
+	if (m_server_obj == nullptr)
+	{
+		return INVALID_SOCKET;
+	}
+
+	return m_server_obj->fd();
 }
 
 //uint64_t Network::processAccept(SOCKET sock, int32_t error)
@@ -207,8 +230,26 @@ uint64_t Network::getNetID()
 //	}
 //}
 
+std::shared_ptr<INetObj> Network::getNetObj(uint64_t net_id)
+{
+	std::shared_lock<std::shared_mutex> lock(m_net_mutex);
+
+	auto it = m_net_objs.find(net_id);
+
+	if (it != m_net_objs.end())
+	{
+		return std::static_pointer_cast<INetObj>(it->second);
+	}
+	else
+	{
+		return nullptr;
+	}
+}
+
 std::shared_ptr<BaseNetObj> Network::getNetObj2(uint64_t net_id)
 {
+	std::shared_lock<std::shared_mutex> lock(m_net_mutex);
+
 	auto it = m_net_objs.find(net_id);
 
 	if (it != m_net_objs.end())
@@ -221,16 +262,37 @@ std::shared_ptr<BaseNetObj> Network::getNetObj2(uint64_t net_id)
 	}
 }
 
+bool Network::insertNetObj(std::shared_ptr<BaseNetObj> netObj, bool addPoll)
+{
+	if (addPoll == true )
+	{
+		if (false == m_poll->addPoll(netObj))
+		{
+			NETERROR << "insert net obj fail." << netObj->getNetID();
+			return false;
+		}
+	}
+
+	std::unique_lock<std::shared_mutex> lock(m_net_mutex);
+	auto iter = m_net_objs.insert(std::make_pair(netObj->getNetID(), netObj));
+	return iter.second;
+}
+
+void Network::removeNetObj(uint64_t net_id)
+{
+	std::unique_lock<std::shared_mutex> lock(m_net_mutex);
+
+	m_net_objs.erase(net_id);
+}
+
 void Network::deleteNetObj(uint64_t net_id)
 {
-	//TODO:解除注册事件
 	auto netObj = getNetObj2(net_id);
-
 	if (netObj == nullptr) return;
 
 	m_poll->delPoll(netObj);
 
-	m_net_objs.erase(net_id);
+	removeNetObj(net_id);
 
 	NETDEBUG << "delete net obj. id:" << net_id;
 }
@@ -273,14 +335,14 @@ void Network::processAsynConnectResult()
 		{
 			if (info.second.m_timeout <= now)
 			{
+				delnetid.push_back(info.first);
+
 				auto net_obj = getNetObj2(info.first);
 				if (net_obj == nullptr)
 				{
 					NETDEBUG << "async m_connecting net obj not find :" << info.first;
 					continue;
 				}
-
-				delnetid.push_back(info.first);
 
 				auto iter = connect_result.insert(info.first);
 				if (iter.second == false) continue;
@@ -319,6 +381,11 @@ void Network::processAsynConnectResult()
 
 uint64_t Network::linsten(InetAddress& address)
 {
+	if (m_server_obj != nullptr)
+	{
+		return INVALID_NET_ID;
+	}
+
 	sa_family_t family = address.family();
 
 	m_server_obj = makeNetObj(this, family);
@@ -332,6 +399,8 @@ uint64_t Network::linsten(InetAddress& address)
 	{
 		return INVALID_NET_ID;
 	}
+
+	m_poll->addPoll(m_server_obj);
 
 	return m_server_obj->getNetID();
 }
@@ -352,14 +421,14 @@ uint64_t Network::connect(InetAddress& address, uint64_t timeout)
 		return INVALID_NET_ID;
 	}
 
-	auto iter = m_net_objs.insert(make_pair(connect_obj->getNetID(), connect_obj));
-
-	if (iter.second == false)
+	if (insertNetObj(connect_obj, true) == false)
 	{
-		NETERROR << "netobj insert fail. net id:" << connect_obj->getNetID();
+		NETERROR << "net obj insert fail. net id:" << connect_obj->getNetID();
 
 		return INVALID_NET_ID;
 	}
+
+	
 
 	return connect_obj->getNetID();
 }
@@ -380,9 +449,7 @@ uint64_t Network::asynConnect(InetAddress& address, uint64_t timeout)
 		return INVALID_NET_ID;
 	}
 
-	auto iter = m_net_objs.insert(make_pair(connect_obj->getNetID(), connect_obj));
-
-	if (iter.second == false)
+	if (insertNetObj(connect_obj) == false)
 	{
 		NETERROR << "net obj insert fail. net id:" << connect_obj->getNetID();
 		return INVALID_NET_ID;
@@ -408,15 +475,15 @@ bool Network::send(uint64_t net_id, const char* data, size_t size)
 {
 	NETERROR << "send :" << net_id;
 
-	auto it = m_net_objs.find(net_id);
+	auto netObj = getNetObj2(net_id);
 
-	if (it == m_net_objs.end())
+	if (netObj == nullptr)
 	{
 		NETERROR << "invalid net id :" << net_id;
 		return false;
 	}
 
-	bool ret = it->second->send(data, size);
+	bool ret = netObj->send(data, size);
 
 	if (ret == false)
 	{
@@ -428,14 +495,15 @@ bool Network::send(uint64_t net_id, const char* data, size_t size)
 
 void Network::close(uint64_t net_id)
 {
-	auto it = m_net_objs.find(net_id);
+	auto netObj = getNetObj2(net_id);
 
-	if (it == m_net_objs.end())
+	if (netObj == nullptr)
 	{
 		NETERROR << "invalid net id :" << net_id;
 		return;
 	}
-	it->second->close();
+
+	netObj->close();
 
 	/*回调断开连接 此时还能拿到对象*/
 	m_onDisconnect(net_id);
@@ -444,19 +512,7 @@ void Network::close(uint64_t net_id)
 	deleteNetObj(net_id);
 }
 
-std::shared_ptr<INetObj> Network::getNetObj(uint64_t net_id)
-{
-	auto it = m_net_objs.find(net_id);
 
-	if (it != m_net_objs.end())
-	{
-		return std::static_pointer_cast<INetObj>(it->second);
-	}
-	else 
-	{
-		return nullptr;
-	}
-}
 
 NetMode Network::getNetMode()
 {
