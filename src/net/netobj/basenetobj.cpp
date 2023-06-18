@@ -110,7 +110,7 @@ bool BaseNetObj::send(const char* data, size_t len)
 
 bool BaseNetObj::isListen()
 {
-	return m_listen;
+	return m_listen == 1;
 }
 
 bool BaseNetObj::close()

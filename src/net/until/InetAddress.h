@@ -25,7 +25,7 @@ public:
 	uint16_t port();
 	std::string toIp();
 	std::string toIpPort();
-	sa_family_t family();
+	sa_family_t family() const;
 
 	struct sockaddr* getSockAddr();
 	struct sockaddr* getSockAddr4();

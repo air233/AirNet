@@ -51,7 +51,6 @@ public:
 
 	NetMode getNetMode() override;
 	std::shared_ptr<INetObj> getNetObj(uint64_t net_id) override;
-
 /*以下接口不暴露*/
 public:
 	void rlease();
@@ -66,7 +65,10 @@ public:
 
 	/*增删改查*/
 	std::shared_ptr<BaseNetObj> makeNetObj(Network* network, sa_family_t family);
+	std::shared_ptr<BaseNetObj> makeNetObj(Network* network, SOCKET sock);
+
 	std::shared_ptr<BaseNetObj> getNetObj2(uint64_t net_id);
+	std::shared_ptr<BaseNetObj> getServerNetObj();
 	bool insertNetObj(std::shared_ptr<BaseNetObj> netObj,bool addPoll=false);
 	void removeNetObj(uint64_t net_id);
 

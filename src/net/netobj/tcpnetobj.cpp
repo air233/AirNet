@@ -69,7 +69,8 @@ bool TcpNetObj::bind(InetAddress& address)
 
 bool TcpNetObj::listen()
 {
-	BaseNetObj::listen();
+	//BaseNetObj::listen();
+	m_listen = 1;
 
 	if (listenSocket(m_fd, m_error) < 0)
 	{

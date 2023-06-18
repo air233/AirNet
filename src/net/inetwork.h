@@ -13,6 +13,7 @@ XXXXCallback 事件回调接口
 typedef std::function<void(const uint64_t)> AcceptCallback;
 void defaultAcceptCallback(uint64_t);
 
+/*errcode=0连接成功*/
 typedef std::function<void (const uint64_t, int32_t errcode)> ConnectCallback;
 void defaultConnectCallback(uint64_t, int32_t);
 

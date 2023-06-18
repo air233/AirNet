@@ -189,7 +189,7 @@ uint16_t InetAddress::port()
 	return BigEndianToHost(m_addr.sin_port);
 }
 
-sa_family_t InetAddress::family()
+sa_family_t InetAddress::family() const
 {
 	return m_addr.sin_family;
 }

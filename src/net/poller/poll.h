@@ -11,7 +11,7 @@
 #ifdef _WIN32
 #include <Windows.h>
 
-class PER_IO_CONTEXT;
+class IO_CONTEXT;
 #else
 #endif
 
@@ -33,7 +33,7 @@ class Network;
 class Poll
 {
 public:
-	Poll():m_network(nullptr), m_listen(0),
+	Poll():m_network(nullptr), m_run(true),
 #ifdef _WIN32
 		m_completionPort(nullptr)
 #else
@@ -60,18 +60,20 @@ public:
 
 private:
 	Network* m_network;
-	SOCKET m_listen;
-
+	bool m_run;
+	
 	/*任务列表*/
 	std::mutex m_mutex;
 	std::queue<NetJob> m_net_jobs;
 	std::vector<std::thread> m_threads;
 
+
 #ifdef _WIN32
 	HANDLE m_completionPort;
 	std::mutex m_iocontexts_mutex;
-	std::map<uint64_t, PER_IO_CONTEXT*> m_iocontexts;
+	std::map<uint64_t, IO_CONTEXT*> m_iocontexts;
 
+	void PostAccept(std::shared_ptr<BaseNetObj> netObj);
 	void WorkerThread();
 	
 #else

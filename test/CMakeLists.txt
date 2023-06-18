@@ -44,7 +44,7 @@ add_executable(network_test
 if(MSVC)
 	set(CMAKE_CXX_FLAGS_DEBUG "/MTd")
     set(CMAKE_CXX_FLAGS_RELEASE "/MT")
-	target_link_libraries(network_test ws2_32.lib)
+	target_link_libraries(network_test ws2_32.lib mswsock.lib)
 else()
 	#Á´½Ólibgtest
 endif()

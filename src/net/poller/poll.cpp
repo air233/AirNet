@@ -2,10 +2,6 @@
 #include "../network/network.h"
 #include <thread>
 
-
-
-
-
 //(主线程调用）
 void Poll::processPoll()
 {

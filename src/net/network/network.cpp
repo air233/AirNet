@@ -36,11 +36,18 @@ Network::~Network()
 
 std::shared_ptr<BaseNetObj> Network::makeNetObj(Network* network, sa_family_t family)
 {
-	std::shared_ptr<BaseNetObj> netObj;
-
 	uint64_t netid = getNetID();
 
 	SOCKET sock = createTCPSocket(family);
+
+	return makeNetObj(network, sock);
+}
+
+std::shared_ptr<BaseNetObj> Network::makeNetObj(Network* network, SOCKET sock)
+{
+	std::shared_ptr<BaseNetObj> netObj;
+
+	uint64_t netid = getNetID();
 
 	if (network->getNetMode() == TCP)
 	{
@@ -151,7 +158,7 @@ uint64_t Network::linstenTCP(InetAddress& address, TCPServerConfig& config)
 		return INVALID_NET_ID;
 	}
 
-	NETDEBUG << "linstenTCP ip :" << address.toIpPort();
+	NETDEBUG << "listen fd:" << m_server_obj->fd() << ", linstenTCP ip : " << address.toIpPort();
 
 	return m_server_obj->getNetID();
 }
@@ -260,6 +267,11 @@ std::shared_ptr<BaseNetObj> Network::getNetObj2(uint64_t net_id)
 	{
 		return nullptr;
 	}
+}
+
+std::shared_ptr<BaseNetObj> Network::getServerNetObj()
+{
+	return m_server_obj;
 }
 
 bool Network::insertNetObj(std::shared_ptr<BaseNetObj> netObj, bool addPoll)
