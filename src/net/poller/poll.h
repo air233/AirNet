@@ -10,7 +10,7 @@
 
 #ifdef _WIN32
 #include <Windows.h>
-
+#include <MSWSock.h>
 class IO_CONTEXT;
 #else
 #endif
@@ -23,9 +23,12 @@ class IO_CONTEXT;
 
 struct NetJob
 {
-	JobType m_type = JobNone;
-	uint64_t m_net_id = 0;
-	int32_t m_error = 0;
+	JobType m_type;
+	uint64_t m_net_id;
+	int32_t m_error;
+
+	NetJob();
+	NetJob(const NetJob& job);
 };
 
 class Network;
@@ -53,10 +56,10 @@ public:
 	int32_t waitPoll();
 	void workPoll();
 
-	void pushJob(NetJob& job);
+	void pushJob(std::shared_ptr<NetJob> job);
 
-	//main处理函数
-	void processPoll();
+	//主线程处理函数
+	void processJob();
 
 private:
 	Network* m_network;
@@ -64,18 +67,29 @@ private:
 	
 	/*任务列表*/
 	std::mutex m_mutex;
-	std::queue<NetJob> m_net_jobs;
+	std::queue<std::shared_ptr<NetJob>> m_net_jobs;
+
 	std::vector<std::thread> m_threads;
 
+	void PostAccpetJob(std::shared_ptr<BaseNetObj> netObj);
+	void PostConnectJob(std::shared_ptr<BaseNetObj> netObj, int err);
+	void PostErrorJob(std::shared_ptr<BaseNetObj> netObj, int err);
+	void PostDisConnectJob(std::shared_ptr<BaseNetObj> netObj, int err);
+	void PostRecvJob(std::shared_ptr<BaseNetObj> netObj,char* buff,int len);
 
 #ifdef _WIN32
 	HANDLE m_completionPort;
-	std::mutex m_iocontexts_mutex;
-	std::map<uint64_t, IO_CONTEXT*> m_iocontexts;
-
-	void PostAccept(std::shared_ptr<BaseNetObj> netObj);
-	void WorkerThread();
+	LPFN_CONNECTEX m_ConnectEx;
 	
+	void WorkerThread();
+
+	bool LoadConnectEx();
+	void PostAccept(std::shared_ptr<BaseNetObj> netObj);
+	void PostConnect(std::shared_ptr<BaseNetObj> netObj);
+	void PostRecv(std::shared_ptr<BaseNetObj> netObj);
+	void PostRecvFrom(std::shared_ptr<BaseNetObj> netObj);
+	void PostSend(std::shared_ptr<BaseNetObj> netObj);
+	void PostSendTo(std::shared_ptr<BaseNetObj> netObj);
 #else
 	int m_epollFd;
 #endif

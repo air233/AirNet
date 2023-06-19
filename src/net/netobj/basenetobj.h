@@ -12,20 +12,19 @@ class BaseNetObj : public  INetObj
 {
 public:
 	BaseNetObj(uint64_t net_id, SOCKET fd);
-	virtual ~BaseNetObj() {};
+	virtual ~BaseNetObj();
 
 	uint64_t getNetID() override;
 	uint32_t getNetMode() override;
 	uint32_t getNetStatus() override;
 
-	const InetAddress& localAddress() override;
-	const InetAddress& peerAddress() override;
+	InetAddress& localAddress() override;
+	InetAddress& peerAddress() override;
 
 	std::mutex& inputMutex() override;
 	std::mutex& outputMutex() override;
 	virtual Buffer* inputBuffer() override;
 	virtual Buffer* outputBuffer() override;
-
 
 	SOCKET fd() override;
 	int32_t getError() override;
@@ -48,6 +47,7 @@ public:
 
 	//virtual SOCKET accept(int32_t& err);
 
+	void setNetStatus(uint32_t status);
 	void setlocalAddress(InetAddress& localAddr);
 	void setpeerAddress(InetAddress& peerAddr);
 	void setNetwork(Network* network);
@@ -56,7 +56,7 @@ protected:
 	uint64_t m_net_id;
 	SOCKET m_fd;
 	int32_t m_error;
-	uint32_t m_net_mode;
+	int32_t m_net_mode;
 	uint32_t m_net_state;
 	uint8_t m_listen;
 	uint8_t m_io_type;

@@ -5,7 +5,7 @@
 BaseNetObj::BaseNetObj(uint64_t net_id, SOCKET fd):
 	m_net_id(net_id),
 	m_fd(fd),
-	m_net_mode(NONE),
+	m_net_mode((int)NetMode::NONE),
 	m_net_state(Disconnected),
 	m_error(0),
 	m_listen(0),
@@ -13,6 +13,17 @@ BaseNetObj::BaseNetObj(uint64_t net_id, SOCKET fd):
 	m_network(nullptr)
 {
 
+}
+
+BaseNetObj::~BaseNetObj()
+{
+	if (m_fd != INVALID_SOCKET)
+	{
+		closeSocket(m_fd);
+		m_fd = INVALID_SOCKET;
+	}
+
+	m_net_state = Disconnected;
 }
 
 uint64_t BaseNetObj::getNetID()
@@ -30,12 +41,12 @@ uint32_t BaseNetObj::getNetStatus()
 	return m_net_state;
 }
 
-const InetAddress& BaseNetObj::localAddress()
+InetAddress& BaseNetObj::localAddress()
 {
 	return m_localAddr;
 }
 
-const InetAddress& BaseNetObj::peerAddress()
+InetAddress& BaseNetObj::peerAddress()
 {
 	return m_peerAddr;
 }
@@ -157,6 +168,11 @@ void BaseNetObj::haveAll(bool enable)
 uint8_t BaseNetObj::getIOType()
 {
 	return m_io_type;
+}
+
+void BaseNetObj::setNetStatus(uint32_t status)
+{
+	m_net_state = status;
 }
 
 //SOCKET BaseNetObj::accept(int32_t& err)

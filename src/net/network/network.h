@@ -24,7 +24,7 @@
 class Network : public INetWrok
 {
 public:
-	explicit Network(NetMode mode = TCP);
+	explicit Network(NetMode mode = NetMode::TCP);
 	~Network();
 
 	/*生命周期函数*/
@@ -49,32 +49,33 @@ public:
 	bool send(uint64_t net_id, const char* data, size_t size) override;
 	void close(uint64_t net_id) override;
 
-	NetMode getNetMode() override;
+	int getNetMode() override;
 	std::shared_ptr<INetObj> getNetObj(uint64_t net_id) override;
+
 /*以下接口不暴露*/
 public:
 	void rlease();
 	Log& getLog() { return m_log; };
 	void deleteNetObj(uint64_t net_id);
-	uint64_t getNetID();
+	uint64_t getNextNetID();
+	std::shared_ptr<BaseNetObj> getServerNetObj();
 	SOCKET getListenSock();
 	//uint64_t processAccept(SOCKET sock,int32_t error);
 
 	void asyncConnectResult(uint64_t net_id, int32_t err);
-	void processAsynConnectResult();
+	void processAsynConnectTimeOut();
 
 	/*增删改查*/
 	std::shared_ptr<BaseNetObj> makeNetObj(Network* network, sa_family_t family);
 	std::shared_ptr<BaseNetObj> makeNetObj(Network* network, SOCKET sock);
 
 	std::shared_ptr<BaseNetObj> getNetObj2(uint64_t net_id);
-	std::shared_ptr<BaseNetObj> getServerNetObj();
-	bool insertNetObj(std::shared_ptr<BaseNetObj> netObj,bool addPoll=false);
+	
+	bool insertNetObj(std::shared_ptr<BaseNetObj> netObj,bool addPoll=true);
 	void removeNetObj(uint64_t net_id);
 
 private:
 	NetMode m_mode;
-	int32_t  m_init;
 	std::atomic<uint64_t> m_net_id;
 	
 	SOCKET m_idle_fd;/*空置Sock*/
@@ -89,7 +90,6 @@ private:
 	/*异步连接队列 (主线程，IO线程)*/
 	std::mutex m_connect_mutex;
 	std::map<uint64_t,ConnectInfo> m_connecting;
-	std::set<uint64_t> m_connect_result;
 
 	//std::queue<uint64_t> m_disconnect;
 	Log m_log;

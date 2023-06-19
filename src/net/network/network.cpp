@@ -20,7 +20,6 @@ Network::Network(NetMode mode):
 	m_mode(mode),
 	m_net_id(0), 
 	m_poll(new Poll()),
-	m_init(0), 
 	m_log("./log/network/","network"),
 	m_idle_fd(-1),
 	m_ssl(0),
@@ -36,8 +35,6 @@ Network::~Network()
 
 std::shared_ptr<BaseNetObj> Network::makeNetObj(Network* network, sa_family_t family)
 {
-	uint64_t netid = getNetID();
-
 	SOCKET sock = createTCPSocket(family);
 
 	return makeNetObj(network, sock);
@@ -47,17 +44,17 @@ std::shared_ptr<BaseNetObj> Network::makeNetObj(Network* network, SOCKET sock)
 {
 	std::shared_ptr<BaseNetObj> netObj;
 
-	uint64_t netid = getNetID();
+	uint64_t netid = getNextNetID();
 
-	if (network->getNetMode() == TCP)
+	if (network->getNetMode() == (int)NetMode::TCP)
 	{
 		netObj = std::make_shared<TcpNetObj>(netid, sock);
 	}
-	else if (network->getNetMode() == UDP)
+	else if (network->getNetMode() == (int)NetMode::UDP)
 	{
 		//TODO:其他Mode
 	}
-	else if (network->getNetMode() == KCP)
+	else if (network->getNetMode() == (int)NetMode::KCP)
 	{
 		//TODO:其他Mode
 	}
@@ -74,11 +71,7 @@ std::shared_ptr<BaseNetObj> Network::makeNetObj(Network* network, SOCKET sock)
 
 bool Network::start()
 {
-	//if (m_init == 0)
-	//{
-	//	m_log.Debug() << "network not initialized!";
-	//	return false;
-	//}
+	bool ret = false;
 #ifdef _WIN32
 	WSADATA wsaData;
 	int r = WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -88,22 +81,20 @@ bool Network::start()
 		return false;
 	}
 #endif
-
 	m_idle_fd = createFd();
 
-	return m_poll->createPoll(this);
+	ret = m_poll->createPoll(this);
+
+	return ret;
 }
 
 void Network::update()
 {
-	//TODO:处理所有的socket消息 回调onReceive()
-	
-	//1.处理连接消息
-	processAsynConnectResult();
+	//1.处理异步连接超时
+	processAsynConnectTimeOut();
 
-	//2.处理文件描述符读写
-	//m_poll->processPoll();
-
+	//2.处理IO产生的Job
+	m_poll->processJob();
 }
 
 void Network::stop()
@@ -122,7 +113,7 @@ void Network::setOpenSSL(bool bEnable)
 
 uint64_t Network::linstenTCP(InetAddress& address, TCPServerConfig& config)
 {
-	if (m_mode != TCP)
+	if (m_mode != NetMode::TCP)
 	{
 		return INVALID_NET_ID;
 	}
@@ -181,7 +172,7 @@ void Network::rlease()
 
 /*TODO:需要测试多线程正确性*/
 /*保证唯一且不为0*/
-uint64_t Network::getNetID()
+uint64_t Network::getNextNetID()
 {
 	while (true)
 	{
@@ -216,26 +207,6 @@ SOCKET Network::getListenSock()
 
 	return m_server_obj->fd();
 }
-
-//uint64_t Network::processAccept(SOCKET sock, int32_t error)
-//{
-//	if (sock < 0)
-//	{
-//		NETERROR << "accept invalid sock. error:" << error;
-//		
-//#ifdef _WIN32
-//		if(error == WSAEMFILE)
-//#else
-//		if (error == EMFILE)
-//#endif
-//		{
-//			closeSocket(m_idle_fd);
-//			//m_idle_fd = m_server_obj->accept();
-//
-//			m_idle_fd = createFd();
-//		}
-//	}
-//}
 
 std::shared_ptr<INetObj> Network::getNetObj(uint64_t net_id)
 {
@@ -278,6 +249,7 @@ bool Network::insertNetObj(std::shared_ptr<BaseNetObj> netObj, bool addPoll)
 {
 	if (addPoll == true )
 	{
+		//将IO事件加入Poll层
 		if (false == m_poll->addPoll(netObj))
 		{
 			NETERROR << "insert net obj fail." << netObj->getNetID();
@@ -293,7 +265,6 @@ bool Network::insertNetObj(std::shared_ptr<BaseNetObj> netObj, bool addPoll)
 void Network::removeNetObj(uint64_t net_id)
 {
 	std::unique_lock<std::shared_mutex> lock(m_net_mutex);
-
 	m_net_objs.erase(net_id);
 }
 
@@ -302,11 +273,11 @@ void Network::deleteNetObj(uint64_t net_id)
 	auto netObj = getNetObj2(net_id);
 	if (netObj == nullptr) return;
 
-	m_poll->delPoll(netObj);
-
-	removeNetObj(net_id);
-
 	NETDEBUG << "delete net obj. id:" << net_id;
+
+	netObj->close();
+	m_poll->delPoll(netObj);
+	removeNetObj(net_id);
 }
 
 void Network::asyncConnectResult(uint64_t net_id, int32_t err)
@@ -319,7 +290,6 @@ void Network::asyncConnectResult(uint64_t net_id, int32_t err)
 	}
 
 	std::lock_guard<std::mutex> guard(m_connect_mutex);
-
 	if (m_connecting.count(net_id) == 0)
 	{
 		NETDEBUG << "connecting not find net obj:" << net_id;
@@ -327,22 +297,18 @@ void Network::asyncConnectResult(uint64_t net_id, int32_t err)
 	}
 
 	net_obj->setError(err);
-
-	m_connect_result.insert(net_id);
 	m_connecting.erase(net_id);
 }
 
-void Network::processAsynConnectResult()
+void Network::processAsynConnectTimeOut()
 {
 	uint64_t now = GetMSTime();
+	/*处理连接超时*/
 	std::set<uint64_t> connect_result;
-	
 	{
 		std::lock_guard<std::mutex> guard(m_connect_mutex);
-		connect_result.swap(m_connect_result);
-
 		std::vector<uint64_t> delnetid;
-		/*处理连接超时*/
+		
 		for (const auto& info : m_connecting)
 		{
 			if (info.second.m_timeout <= now)
@@ -358,7 +324,6 @@ void Network::processAsynConnectResult()
 
 				auto iter = connect_result.insert(info.first);
 				if (iter.second == false) continue;
-
 				net_obj->setError(NET_TIMEOUT);
 			}
 		}
@@ -369,7 +334,6 @@ void Network::processAsynConnectResult()
 		}
 	}
 	
-	/*处理连接结果*/
 	for (auto net_id : connect_result)
 	{
 		auto net_obj = getNetObj2(net_id);
@@ -380,14 +344,11 @@ void Network::processAsynConnectResult()
 			continue;
 		}
 
-		//回调连接结果
-		m_onConnect(net_id, net_obj->getError());
+		//超时处理
+		m_onConnect(net_id, NET_TIMEOUT);
 
-		//如果失败，NetObj删除 net_id失效
-		if (net_obj->getError() != NET_SUCCESS)
-		{
-			deleteNetObj(net_id);
-		}
+		
+		deleteNetObj(net_id);
 	}
 }
 
@@ -412,6 +373,7 @@ uint64_t Network::linsten(InetAddress& address)
 		return INVALID_NET_ID;
 	}
 
+	/*注册事件*/
 	m_poll->addPoll(m_server_obj);
 
 	return m_server_obj->getNetID();
@@ -433,14 +395,12 @@ uint64_t Network::connect(InetAddress& address, uint64_t timeout)
 		return INVALID_NET_ID;
 	}
 
-	if (insertNetObj(connect_obj, true) == false)
+	if (insertNetObj(connect_obj) == false)
 	{
 		NETERROR << "net obj insert fail. net id:" << connect_obj->getNetID();
 
 		return INVALID_NET_ID;
 	}
-
-	
 
 	return connect_obj->getNetID();
 }
@@ -470,8 +430,8 @@ uint64_t Network::asynConnect(InetAddress& address, uint64_t timeout)
 	ConnectInfo stConnectInfo;
 	stConnectInfo.m_net_id = connect_obj->getNetID();
 	stConnectInfo.m_timeout = GetMSTime() + timeout;
-	NETDEBUG << "asynConnect time out:" << GetMSTimeStr(stConnectInfo.m_timeout);
 	m_connecting.insert(std::make_pair(connect_obj->getNetID(), stConnectInfo));
+	//NETDEBUG << "asynConnect time out:" << GetMSTimeStr(stConnectInfo.m_timeout);
 
 	return connect_obj->getNetID();
 }
@@ -485,7 +445,7 @@ uint64_t Network::asynConnect(std::string ip, uint16_t port, uint64_t timeout /*
 
 bool Network::send(uint64_t net_id, const char* data, size_t size)
 {
-	NETERROR << "send :" << net_id;
+	NETDEBUG << "send :" << net_id;
 
 	auto netObj = getNetObj2(net_id);
 
@@ -515,8 +475,6 @@ void Network::close(uint64_t net_id)
 		return;
 	}
 
-	netObj->close();
-
 	/*回调断开连接 此时还能拿到对象*/
 	m_onDisconnect(net_id);
 
@@ -524,9 +482,7 @@ void Network::close(uint64_t net_id)
 	deleteNetObj(net_id);
 }
 
-
-
-NetMode Network::getNetMode()
+int Network::getNetMode()
 {
-	return m_mode;
+	return (int)m_mode;
 }

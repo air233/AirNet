@@ -137,6 +137,7 @@ void FileStream::flush()
 {
 	//std::cout << m_oss.str().c_str() << std::endl;
 	time_t now;
+
 	std::string log_name = m_path + FileStream::getLogFileName(m_base, m_cut_mode, &now);
 
 	if (log_name != m_log_name)
@@ -182,16 +183,23 @@ void FileStream::set_dirty()
 LogFileStream::LogFileStream(FileStream& log, const char* level)
 :m_log(log), m_level(level)
 {
-	log.stream() << "[" << GetMSTimeStr() << "]";
-	log.stream() << "[" << level << "]";
-	log.stream() << " ";
+	m_oss << "[" << GetMSTimeStr() << "]";
+	m_oss << "[" << level << "]";
+	m_oss << " ";
+}
+
+LogFileStream::LogFileStream(const LogFileStream& file):
+	m_log(file.m_log), m_level(file.m_level)
+{
+	m_oss << file.m_oss.str();
 }
 
 LogFileStream::~LogFileStream()
 {
-	std::cout << m_log.stream().str() << std::endl;
-
+	m_log.stream() << m_oss.str();
 	m_log.flush();
+
+	std::cout << m_oss.str() << std::endl;
 
 	if (m_level == "FATAL")
 	{

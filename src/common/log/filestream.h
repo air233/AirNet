@@ -56,6 +56,8 @@ class LogFileStream
 {
 public:
 	LogFileStream(FileStream& log, const char* level);
+	LogFileStream(const LogFileStream& file);
+
 	~LogFileStream();
 
 	template<typename T>
@@ -64,12 +66,14 @@ public:
 private:
 	FileStream& m_log;
 	std::string m_level;
+
+	std::ostringstream m_oss;
 };
 
 template<typename T>
 std::ostringstream& LogFileStream::operator <<(const T& obj)
 {
-	m_log.stream() << obj;
+	m_oss << obj;
 
-	return m_log.stream();
+	return m_oss;
 }

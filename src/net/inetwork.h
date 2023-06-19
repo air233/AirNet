@@ -43,8 +43,8 @@ public:
 	virtual uint32_t getNetStatus() = 0;
 
 	/*连接地址*/
-	virtual const InetAddress& localAddress() = 0;
-	virtual const InetAddress& peerAddress() = 0;
+	virtual InetAddress& localAddress() = 0;
+	virtual InetAddress& peerAddress() = 0;
 
 	virtual std::mutex& inputMutex() = 0;
 	virtual Buffer* inputBuffer() = 0;
@@ -105,7 +105,7 @@ public:
 	virtual void close(uint64_t net_id) = 0;
 
 	virtual std::shared_ptr<INetObj> getNetObj(uint64_t net_id) = 0;
-	virtual NetMode getNetMode() = 0;
+	virtual int getNetMode() = 0;
 
 	/*设置回调函数*/
 	void setAcceptCallback(AcceptCallback callback) { m_onAccept = callback; }
@@ -121,7 +121,6 @@ public:
 	ReceiveCallback m_onRecv;
 	ErrorCallback m_onError;
 };
-
 
 /********************
 获取NetWork对象

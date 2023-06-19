@@ -26,7 +26,7 @@ typedef struct TCPConfig
 	bool lingerzero;
 }TCPServerConfig;
 
-enum NetMode
+enum class NetMode : int
 {
 	NONE,
 	TCP,

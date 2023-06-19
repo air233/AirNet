@@ -9,10 +9,12 @@
 #include "../network/network.h"
 #include "../socket/socketops.h"
 
+#include <iostream>
+
 TcpNetObj::TcpNetObj(uint64_t net_id, SOCKET fd):
 	BaseNetObj(net_id,fd)
 {
-	m_net_mode = TCP;
+	m_net_mode = (int)NetMode::TCP;
 
 	setNoDelay(true);
 	setReuseAddr(true);
@@ -125,13 +127,10 @@ bool TcpNetObj::asynConnect(InetAddress& address, uint64_t outms)
 
 	m_peerAddr = address;
 
+#ifndef _WIN32
 	if (connectSocket(m_fd, address.getSockAddr(), m_error) < 0)
 	{
-#ifdef _WIN32
-		if (m_error == WSAEWOULDBLOCK || m_error == WSAEALREADY)
-#else
 		if (m_error == EINPROGRESS || m_error == EWOULDBLOCK || m_error == EAGAIN)
-#endif
 		{
 			haveWrite(true);
 			m_net_state = Connecting;
@@ -143,8 +142,16 @@ bool TcpNetObj::asynConnect(InetAddress& address, uint64_t outms)
 			return false;
 		}
 	}
-
-	return false;
+	else
+	{
+		m_net_state = Connected;
+		return true;
+	}
+#else
+	//对于Windows平台投递到IOCP进行异步连接
+	m_net_state = Connecting;
+	return true;
+#endif
 }
 
 bool TcpNetObj::send(const char* data, size_t len)
@@ -177,9 +184,8 @@ bool TcpNetObj::send(const char* data, size_t len)
 bool TcpNetObj::close()
 {
 	closeSocket(m_fd);
-	m_fd = -1;
+	m_fd = INVALID_SOCKET;
 	m_net_state = Disconnected;
-
-	m_network->NETERROR << "TCP obj close. net id:" << m_net_id;
+	m_network->NETDEBUG << "TCP obj close. net id:" << m_net_id;
 	return true;
 }
