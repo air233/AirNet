@@ -147,6 +147,7 @@ void FileStream::flush()
 
 	fprintf(m_file, m_oss.str().c_str());
 	fprintf(m_file, "\n");
+	fflush(m_file);
 
 	m_oss.str("");
 	m_oss.clear();
