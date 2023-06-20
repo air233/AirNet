@@ -55,6 +55,7 @@ enum JobType
 };
 
 enum NetErrCode {
+	NET_OBJ_ERR = -8,
 	NET_TIMEOUT = -7,
 	NET_CONNECT_FAIL = -6,
 	NET_SYSTEM_ERROR = -5,

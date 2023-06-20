@@ -16,7 +16,10 @@ public:
 	void ConnectCallback(const uint64_t, int32_t);
 	void Disconnected(const uint64_t);
 	void Receive(const uint64_t net_id, Buffer* buff);
+	void AccpetCallback(const uint64_t net_id);
 };
+
+
 
 void MyServer::ConnectCallback(const uint64_t net_id, int32_t error)
 {
@@ -28,6 +31,8 @@ void MyServer::ConnectCallback(const uint64_t net_id, int32_t error)
 	{
 		std::cout << "connect success. local addr:" << netObj->localAddress().toIpPort() << ". peer addr:" << netObj->peerAddress().toIpPort() << std::endl;
 	}
+
+	//m_network->send(net_id, "hello", 5);
 }
 
 void MyServer::Disconnected(const uint64_t net_id)
@@ -41,7 +46,16 @@ void MyServer::Receive(const uint64_t net_id, Buffer* buff)
 
 	buff->peekString(str, buff->size());
 
-	std::cout << net_id <<",size:" << buff->size() << " recv:" << str << std::endl;
+	std::cout << net_id <<",size:" << str.size() << " recv:" << str << std::endl;
+
+	m_network->send(net_id, str.c_str(), str.size());
+}
+
+void MyServer::AccpetCallback(const uint64_t net_id)
+{
+	std::cout << "AccpetID:" << net_id << std::endl;
+
+	m_network->send(net_id, "hello", 5);
 }
 
 int test_server()
@@ -52,17 +66,17 @@ int test_server()
 	server.m_network->setConnectCallback(std::bind(&MyServer::ConnectCallback, &server, std::placeholders::_1, std::placeholders::_2));
 	server.m_network->setDisConnectCallback(std::bind(&MyServer::Disconnected, &server, std::placeholders::_1));
 	server.m_network->setRecvCallback(std::bind(&MyServer::Receive, &server, std::placeholders::_1, std::placeholders::_2));
-
+	server.m_network->setAcceptCallback(std::bind(&MyServer::AccpetCallback, &server, std::placeholders::_1));
 	//·þÎñÆ÷Æô¶¯
 	server.m_network->start();
-	
-	std::cout <<"asynConnect:"<< GetMSTimeStr() << std::endl;
-	auto net_id = server.m_network->asynConnect("192.168.3.161", 1301,5000);
-	std::cout << "connect id :" << net_id << std::endl;
 
-	//TCPConfig config = { 0,0,0 };
-	//auto net_id2 = server.m_network->linstenTCP("0.0.0.0", 8888, config);
-	//std::cout << "listen id :" << net_id2 << std::endl;
+	//std::cout << "asynConnect:" << GetMSTimeStr() << std::endl;
+	//auto net_id = server.m_network->asynConnect("192.168.2.161", 1301, 5000);
+	//std::cout << "connect id :" << net_id << std::endl;
+
+	TCPConfig config = { 0,0,0 };
+	auto net_id2 = server.m_network->linstenTCP("0.0.0.0", 8888, config);
+	std::cout << "listen id :" << net_id2 << std::endl;
 
 	while (true)
 	{

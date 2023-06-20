@@ -51,7 +51,7 @@ public:
 
 	bool addPoll(std::shared_ptr<BaseNetObj> netObj);
 	void delPoll(std::shared_ptr<BaseNetObj> netObj);
-	int enablePoll(std::shared_ptr<BaseNetObj> netObj, bool read_enable, bool write_enable);
+	bool enablePoll(std::shared_ptr<BaseNetObj> netObj, bool read_enable, bool write_enable);
 
 	int32_t waitPoll();
 	void workPoll();
@@ -84,12 +84,15 @@ private:
 	void WorkerThread();
 
 	bool LoadConnectEx();
-	void PostAccept(std::shared_ptr<BaseNetObj> netObj);
-	void PostConnect(std::shared_ptr<BaseNetObj> netObj);
-	void PostRecv(std::shared_ptr<BaseNetObj> netObj);
-	void PostRecvFrom(std::shared_ptr<BaseNetObj> netObj);
-	void PostSend(std::shared_ptr<BaseNetObj> netObj);
-	void PostSendTo(std::shared_ptr<BaseNetObj> netObj);
+	void PostAcceptEvent(std::shared_ptr<BaseNetObj> netObj);
+	bool PostConnectEvent(std::shared_ptr<BaseNetObj> netObj);
+	bool PostRecvEvent(std::shared_ptr<BaseNetObj> netObj);
+	bool PostSendEvent(std::shared_ptr<BaseNetObj> netObj);
+
+	bool PostRecv(std::shared_ptr<BaseNetObj> netObj);
+	bool PostRecvFrom(std::shared_ptr<BaseNetObj> netObj);
+	bool PostSend(std::shared_ptr<BaseNetObj> netObj);
+	bool PostSendTo(std::shared_ptr<BaseNetObj> netObj);
 #else
 	int m_epollFd;
 #endif

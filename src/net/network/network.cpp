@@ -9,6 +9,7 @@
 #ifdef _WIN32
 #include <winsock2.h>
 #else
+#include <csignal>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -17,6 +18,7 @@
 
 Network::Network(NetMode mode):
 	INetWrok(mode),
+	m_run(0),
 	m_mode(mode),
 	m_net_id(0), 
 	m_poll(new Poll()),
@@ -30,6 +32,11 @@ Network::Network(NetMode mode):
 
 Network::~Network()
 {
+	if (m_run)
+	{
+		stop();
+	}
+
 	rlease();
 }
 
@@ -71,6 +78,8 @@ std::shared_ptr<BaseNetObj> Network::makeNetObj(Network* network, SOCKET sock)
 
 bool Network::start()
 {
+	NETINFO << "[network] start.";
+
 	bool ret = false;
 #ifdef _WIN32
 	WSADATA wsaData;
@@ -80,11 +89,17 @@ bool Network::start()
 		NETERROR << "network WSAStartup failed with error.";
 		return false;
 	}
+#else
+	signal(SIGPIPE, SIG_IGN);
+	signal(SIGHUP, SIG_IGN);
 #endif
 	m_idle_fd = createFd();
 
 	ret = m_poll->createPoll(this);
 
+	m_run = 1;
+
+	
 	return ret;
 }
 
@@ -101,9 +116,18 @@ void Network::stop()
 {
 	m_poll->destoryPoll();
 
-	closeSocket(m_idle_fd);
+	if (m_idle_fd != INVALID_SOCKET)
+	{
+		closeSocket(m_idle_fd);
+	}
 
-	m_server_obj->close();
+	if (m_server_obj != nullptr)
+	{
+		m_server_obj->close();
+	}
+
+	m_run = 0;
+	NETINFO << "[network] stop.";
 }
 
 void Network::setOpenSSL(bool bEnable)
@@ -144,7 +168,7 @@ uint64_t Network::linstenTCP(InetAddress& address, TCPServerConfig& config)
 		return INVALID_NET_ID;
 	}
 
-	if (false == insertNetObj(m_server_obj, true))
+	if (false == insertNetObj(m_server_obj))
 	{
 		return INVALID_NET_ID;
 	}
@@ -259,6 +283,7 @@ bool Network::insertNetObj(std::shared_ptr<BaseNetObj> netObj, bool addPoll)
 
 	std::unique_lock<std::shared_mutex> lock(m_net_mutex);
 	auto iter = m_net_objs.insert(std::make_pair(netObj->getNetID(), netObj));
+
 	return iter.second;
 }
 
@@ -272,11 +297,11 @@ void Network::deleteNetObj(uint64_t net_id)
 {
 	auto netObj = getNetObj2(net_id);
 	if (netObj == nullptr) return;
-
 	NETDEBUG << "delete net obj. id:" << net_id;
-
+	
 	netObj->close();
 	m_poll->delPoll(netObj);
+
 	removeNetObj(net_id);
 }
 
@@ -347,7 +372,6 @@ void Network::processAsynConnectTimeOut()
 		//超时处理
 		m_onConnect(net_id, NET_TIMEOUT);
 
-		
 		deleteNetObj(net_id);
 	}
 }
@@ -373,8 +397,13 @@ uint64_t Network::linsten(InetAddress& address)
 		return INVALID_NET_ID;
 	}
 
-	/*注册事件*/
-	m_poll->addPoll(m_server_obj);
+	if (false == insertNetObj(m_server_obj))
+	{
+		auto netObj = getNetObj2(m_server_obj->getNetID());
+		if (netObj) netObj->close();
+
+		return INVALID_NET_ID;
+	}
 
 	return m_server_obj->getNetID();
 }
@@ -462,6 +491,9 @@ bool Network::send(uint64_t net_id, const char* data, size_t size)
 		close(net_id);
 	}
 
+	//开启监听读写
+	int32_t error = 0;
+	ret = m_poll->enablePoll(netObj, true, true);
 	return ret;
 }
 

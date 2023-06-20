@@ -64,7 +64,7 @@ bool Poll::LoadConnectEx()
 	return TRUE;
 }
 
-void Poll::PostAccept(std::shared_ptr<BaseNetObj> listenNetObj)
+void Poll::PostAcceptEvent(std::shared_ptr<BaseNetObj> listenNetObj)
 {
 	SOCKET clientSock = createTCPSocket(listenNetObj->localAddress().family());
 	if (clientSock == INVALID_SOCKET)
@@ -96,7 +96,7 @@ void Poll::PostAccept(std::shared_ptr<BaseNetObj> listenNetObj)
 	}
 }
 
-void Poll::PostConnect(std::shared_ptr<BaseNetObj> netObj)
+bool Poll::PostConnectEvent(std::shared_ptr<BaseNetObj> netObj)
 {
 	IO_CONTEXT* ioContext = new IO_CONTEXT();
 	ioContext->NetID = netObj->getNetID();
@@ -115,36 +115,113 @@ void Poll::PostConnect(std::shared_ptr<BaseNetObj> netObj)
 		int err = GetLastError();
 		m_network->NETERROR << "[IOCP] bind address fail: " << err;
 		PostConnectJob(netObj, err);
-		return;
+		return false;
 	}
 
 	auto peeraddr = netObj->peerAddress().getSockAddr();
 	DWORD dwByteRcv = 0;
-	if(false == m_ConnectEx(netObj->fd(), 
-		(sockaddr*)peeraddr, 
-		sizeof(*peeraddr), 
-		NULL, 
-		0, 
-		NULL, 
-		(LPOVERLAPPED)ioContext))
+	if(false == m_ConnectEx(netObj->fd(), (sockaddr*)peeraddr, sizeof(*peeraddr), NULL, 0, NULL, (LPOVERLAPPED)ioContext))
 	{
-		if (GetLastError() != WSA_IO_PENDING)
+		int err = GetLastError();
+		if (err != WSA_IO_PENDING)
 		{
-			int err = GetLastError();
 			m_network->NETERROR << "PostConnect Connect Failed. Error: " << err;
 			PostConnectJob(netObj, err);
+			return false;
 		}
+	}
+
+	return true;
+}
+
+bool Poll::PostRecvEvent(std::shared_ptr<BaseNetObj> netObj)
+{
+	if (netObj->getNetMode() == (int)NetMode::TCP)
+	{
+		return PostRecv(netObj);
 	}
 }
 
-void Poll::PostRecv(std::shared_ptr<BaseNetObj> netObj)
+bool Poll::PostRecv(std::shared_ptr<BaseNetObj> netObj)
 {
+	IO_CONTEXT* ioContext = new IO_CONTEXT();
+	ioContext->NetID = netObj->getNetID();
+	ioContext->Socket = netObj->fd();
+	memset(ioContext->Buffer, 0, MAX_BUFFER_SIZE);
+	ioContext->DataBuf.buf = ioContext->Buffer;
+	ioContext->DataBuf.len = sizeof(ioContext->Buffer);
+	ioContext->type = IOType::IORecv;
 
+	DWORD flags = 0;
+	DWORD bytesReceived;
+
+	int ret = WSARecv(netObj->fd(), &ioContext->DataBuf, 1, &bytesReceived, &flags, (LPOVERLAPPED)ioContext, 0);
+	if (ret != 0)
+	{
+		int32_t err = GetLastError();
+
+		if (err != WSA_IO_PENDING)
+		{
+			PostErrorJob(netObj, err);
+			return false;
+		}
+		m_network->NETDEBUG << "[IOCP] PostRecv.";
+		return true;
+	}
 }
 
-void Poll::PostSend(std::shared_ptr<BaseNetObj> netObj)
+bool Poll::PostSendEvent(std::shared_ptr<BaseNetObj> netObj)
 {
+	if (netObj->getNetMode() == (int)NetMode::TCP)
+	{
+		return PostSend(netObj);
+	}
+}
 
+bool Poll::PostSend(std::shared_ptr<BaseNetObj> netObj)
+{
+	std::string sendData;
+	int32_t remainSize = 0;
+	{
+		std::lock_guard<std::mutex> gurad(netObj->inputMutex());
+		if (netObj->inputBuffer()->size() == 0)
+		{
+			std::cout << "[IOCP] Send over." << std::endl;
+			return true;
+		}
+		else
+		{
+			netObj->inputBuffer()->peekString(sendData, MAX_BUFFER_SIZE);
+			remainSize = netObj->inputBuffer()->size();
+		}
+	}
+
+	IO_CONTEXT* ioContext = new IO_CONTEXT();
+	ioContext->NetID = netObj->getNetID();
+	ioContext->Socket = netObj->fd();
+	memset(ioContext->Buffer, 0, MAX_BUFFER_SIZE);
+	memcpy(ioContext->Buffer, sendData.c_str(), sendData.size());
+	ioContext->DataBuf.buf = ioContext->Buffer;
+	ioContext->DataBuf.len = sizeof(ioContext->Buffer);
+	ioContext->type = IOType::IOSend;
+
+
+	DWORD lpNumberOfBytesSent;
+	int ret = WSASend(netObj->fd(), &ioContext->DataBuf, 1, &lpNumberOfBytesSent, 0, (LPOVERLAPPED)ioContext, 0);
+	if (ret != 0)
+	{
+		int32_t err = GetLastError();
+
+		if (err != WSA_IO_PENDING)
+		{
+			PostErrorJob(netObj, err);
+			return false;
+		}
+
+		//std::cout << "[IOCP] PostSend." << std::endl;
+		m_network->NETDEBUG << "[IOCP] PostSend.";
+		return true;
+	}
 }
 
 
@@ -153,99 +230,86 @@ void Poll::WorkerThread()
 	DWORD bytesTransferred;
 	ULONG_PTR completionKey;
 	LPOVERLAPPED overlapped;
+
 	while (true) 
 	{
 		BOOL result = GetQueuedCompletionStatus(m_completionPort, &bytesTransferred, &completionKey, &overlapped, INFINITE);
+		
 		if (overlapped == NULL)
 		{
-			m_network->NETDEBUG << "[IOCP] work thread quit.";
+			m_network->NETWARN << "[IOCP] work thread quit.";
 			break;
 		}
+
 		IO_CONTEXT* ioContext = reinterpret_cast<IO_CONTEXT*>(overlapped);
 
 		if (result == FALSE)
 		{
 			int32_t error = GetLastError();
+			m_network->NETWARN <<"Net id:" << ioContext->NetID << ": Failed to get completion status. Error: " << error;
 
-			m_network->NETERROR <<"Net id:" << ioContext->NetID << ": Failed to get completion status. Error: " << error;
+			auto netObj = m_network->getNetObj2(ioContext->NetID);
+			if (netObj == nullptr)
+			{
+				m_network->NETWARN << "[IOCP] recv not find net obj." << ioContext->NetID;
+				delete ioContext;
+				continue;
+			}
 
 			if (error == WAIT_TIMEOUT || error == ERROR_NETNAME_DELETED)
 			{
-				auto netObj = m_network->getNetObj2(ioContext->NetID);
-
-				if (netObj == nullptr)
-				{
-					m_network->NETERROR << "[IOCP] recv not find net obj." << ioContext->NetID;
-					delete ioContext;
-					continue;
-				}
-
-				//产生一个DisconnectJob
 				PostDisConnectJob(netObj, error);
+			}
+			else
+			{
+				PostErrorJob(netObj, error);
 			}
 
 			delete ioContext;
 			continue;
 		}
 
-		m_network->NETDEBUG << "[IOCP] WorkerThread1 process event:" << CIOType[(int)ioContext->type];
+		std::cout << "[IOCP] WorkerThread1 process event:" << CIOType[(int)ioContext->type] << std::endl;
+		//m_network->NETDEBUG << "[IOCP] WorkerThread1 process event:" << CIOType[(int)ioContext->type];
 
 		if (ioContext->type == IOType::IOAccept)
 		{
 			if (m_network->getNetMode() == (int)NetMode::TCP)
 			{
+				//继续投递Accpet
+				PostAcceptEvent(m_network->getServerNetObj());
 				m_network->NETDEBUG << "[IOCP] TCP accept" << ioContext->NetID;
-
-				//继续投递一个Accpet
-				PostAccept(m_network->getServerNetObj());
-
+			
+				//================处理新连接客户端================
 				//clientSock关联listenSock
 				SOCKET listenSocket = m_network->getServerNetObj()->fd();
 				setsockopt(ioContext->Socket, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT, (char*)&listenSocket, sizeof SOCKET);
 				
-				//生成一个NetObj
+				//生成一个client NetObj
 				auto clientNetObj = m_network->makeNetObj(m_network, ioContext->Socket);
 				if (false == m_network->insertNetObj(clientNetObj))
 				{
 					m_network->NETERROR << "Failed to insert netObj. net id: " << clientNetObj->getNetID();
 					closeSocket(ioContext->Socket);
+					delete ioContext;
 					continue;
 				}
 				
-				//设置地址信息
+				//绑定地址信息
 				sockaddr_storage addr;
 				if (0 == getLocalAddr(ioContext->Socket, addr))
 				{
-					 InetAddress localAddr(addr);
-					 clientNetObj->setlocalAddress(localAddr);
-					 m_network->NETDEBUG << "[IOCP] new client local addr:" << localAddr.toIpPort();
+					 clientNetObj->setlocalAddress(InetAddress(addr));
+					 //m_network->NETDEBUG << "[IOCP] new client local addr:" << localAddr.toIpPort();
 				}
 				if (0 == getPeerAddr(ioContext->Socket, addr))
 				{
-					InetAddress peerAddr(addr);
-					clientNetObj->setpeerAddress(peerAddr);
-					m_network->NETDEBUG << "[IOCP] new client peer addr:" << peerAddr.toIpPort();
+					clientNetObj->setpeerAddress(InetAddress(addr));
+					//m_network->NETDEBUG << "[IOCP] new client peer addr:" << peerAddr.toIpPort();
 				}
 
-				//将ClientSock与完成端口进行关联
-				CreateIoCompletionPort((HANDLE)ioContext->Socket, m_completionPort, 0, 0);
-
-				//投递一个接收事件
-				ioContext->type = IOType::IORecv;
-				ioContext->NetID = clientNetObj->getNetID();
-				memset(ioContext->Buffer, 0, MAX_BUFFER_SIZE);
-				ioContext->DataBuf.buf = ioContext->Buffer;
-				ioContext->DataBuf.len = sizeof(ioContext->Buffer);
-				
-				DWORD dwRecv, dwFlag = 0;
-				auto ret = WSARecv(ioContext->Socket, &ioContext->DataBuf, 1, &dwRecv, &dwFlag, &(ioContext->Overlapped), 0);
-				if (ret == SOCKET_ERROR && GetLastError() != WSA_IO_PENDING)
-				{
-					m_network->NETDEBUG << "[IOCP] client WSARecv fail. error:" << GetLastError();
-					PostErrorJob(clientNetObj, GetLastError());
-
-					delete ioContext;
-				}
+				//投递一个AccpetJob
+				PostAccpetJob(clientNetObj);
 			}
 		}
 		else if (ioContext->type == IOType::IORecv)
@@ -253,7 +317,7 @@ void Poll::WorkerThread()
 			auto netObj = m_network->getNetObj2(ioContext->NetID);
 			if (netObj == nullptr)
 			{
-				m_network->NETERROR << "[IOCP] recv not find net obj." << ioContext->NetID;
+				//m_network->NETERROR << "[IOCP] recv not find net obj." << ioContext->NetID;
 				delete ioContext;
 				continue;
 			}
@@ -261,28 +325,18 @@ void Poll::WorkerThread()
 			if (bytesTransferred == 0)
 			{
 				// 客户端关闭连接
-				m_network->NETDEBUG << "[IOCP] connections disconnect.";
+				//m_network->NETDEBUG << "[IOCP] connections disconnect.";
+				//std::cout << "[IOCP] connections disconnect:" << GetLastError() << std::endl;
 				PostDisConnectJob(netObj, GetLastError());
 				delete ioContext;
 				continue;
 			}
-			//m_network->NETDEBUG << "[IOCP] recv size :" << bytesTransferred;
-			
+
 			//处理收到的数据
 			PostRecvJob(netObj, ioContext->Buffer, bytesTransferred);
 
 			//继续接收事件
-			memset(ioContext->Buffer, 0, MAX_BUFFER_SIZE);
-			
-			DWORD dwRecv, dwFlag = 0;
-			auto ret = WSARecv(ioContext->Socket, &ioContext->DataBuf, 1, &dwRecv, &dwFlag, &(ioContext->Overlapped), 0);
-			if (ret == SOCKET_ERROR && GetLastError() != WSA_IO_PENDING)
-			{
-				m_network->NETDEBUG << "[IOCP] client WSARecv fail. error:" << GetLastError();
-				delete ioContext;
-
-				PostErrorJob(netObj, GetLastError());
-			}
+			//PostRecvEvent(netObj);
 		}
 		else if (ioContext->type == IOType::IOConn)
 		{
@@ -300,22 +354,41 @@ void Poll::WorkerThread()
 				m_network->NETDEBUG << "[IOCP] update connect context fail: " << GetLastError();
 				PostErrorJob(netObj, GetLastError());
 				delete ioContext;
-				return;
+				continue;
 			}
 
 			//更新地址信息
 			sockaddr_storage addr;
-			getLocalAddr(ioContext->Socket, addr);
-			netObj->setlocalAddress(InetAddress(addr));
+			if (0 == getLocalAddr(ioContext->Socket, addr))
+			{
+				netObj->setlocalAddress(InetAddress(addr));
+			}
 
-			getPeerAddr(ioContext->Socket, addr);
-			netObj->setpeerAddress(InetAddress(addr));
-
-			m_network->NETDEBUG << "[IOCP] async connect success. net id:" << ioContext->NetID;
-			//通知结果
+			if (0 == getPeerAddr(ioContext->Socket, addr))
+			{
+				netObj->setpeerAddress(InetAddress(addr));
+			}
+			
+			//生成一个连接Job
 			PostConnectJob(netObj, NET_SUCCESS);
-			delete ioContext;
+			m_network->NETDEBUG << "[IOCP] async connect success. net id:" << ioContext->NetID;
 		}
+		else if (ioContext->type == IOType::IOSend)
+		{
+			std::cout << "send" << std::endl;
+
+			auto netObj = m_network->getNetObj2(ioContext->NetID);
+			if (netObj == nullptr)
+			{
+				m_network->NETERROR << "[IOCP] send not find net obj." << ioContext->NetID;
+				delete ioContext;
+				continue;
+			}
+
+			//PostSendEvent(netObj);
+		}
+
+		delete ioContext;
 	}
 }
 
@@ -368,32 +441,20 @@ bool Poll::addPoll(std::shared_ptr<BaseNetObj> netObj)
 		//预先生成 投递AccpetEx事件
 		for (int i = 0; i < MAX_ACCPET_SIZE; i++)
 		{
-			PostAccept(netObj);
+			PostAcceptEvent(netObj);
 		}
-		
-		m_network->NETDEBUG << "[IOCP] PostAccept.";
+
+		m_network->NETDEBUG << "[IOCP] PostAcceptEvent.";
 		return true;
 	}
 
 	//处理异步连接
 	if (netObj->getNetStatus() == Connecting)
 	{
-		PostConnect(netObj);
-
-		m_network->NETDEBUG << "[IOCP] PostConnect.";
-		return true;
+		m_network->NETDEBUG << "[IOCP] PostConnectEvent.";
+		return PostConnectEvent(netObj);
 	}
-	
-	//TODO:其他事件
 
-
-	//IO_CONTEXT* ioContext = new IO_CONTEXT();
-	//ioContext->Socket = netObj->fd();
-	//ioContext->NetID = netObj->getNetID();
-	//memset(ioContext->Buffer, 0, MAX_BUFFER_SIZE);
-	//ioContext->DataBuf.buf = ioContext->Buffer;
-	//ioContext->DataBuf.len = sizeof(ioContext->Buffer);
-	
 	return true;
 }
 
@@ -407,25 +468,65 @@ int32_t Poll::waitPoll()
 	return 1;
 }
 
-int Poll::enablePoll(std::shared_ptr<BaseNetObj> netObj, bool read_enable, bool write_enable)
+bool Poll::enablePoll(std::shared_ptr<BaseNetObj> netObj, bool read_enable, bool write_enable)
 {
-	return 0;
+	if (netObj == nullptr)
+	{
+		return false;
+	}
+
+	bool ret = false;
+
+	if (read_enable)
+	{
+		if (netObj->getNetMode() == (int)NetMode::TCP)
+		{
+			ret = PostRecv(netObj);
+		}
+		//TODO:TCP|UDP
+	}
+
+	if (ret == false)
+	{
+		return false;
+	}
+
+	if (write_enable)
+	{
+		if (netObj->getNetMode() == (int)NetMode::TCP)
+		{
+			ret = PostSend(netObj);
+		}
+		//TODO:TCP|UDP
+	}
+
+	if (ret == false)
+	{
+		return false;
+	}
+
+	return true;
 }
 
 void Poll::destoryPoll()
 {
 	for (auto& thread : m_threads)
 	{
-		PostQueuedCompletionStatus(m_completionPort, 0, 0, nullptr);
+		Sleep(10);
+		if (false == PostQueuedCompletionStatus(m_completionPort, 0, 0, nullptr))
+		{
+			m_network->NETWARN << "[IOCP] PostQueuedCompletionStatus error:" << GetLastError();
+		}
 	}
 
 	for (auto& thread : m_threads)
 	{
-		thread.join();
+		if(thread.joinable())
+			thread.join();
 	}
 
 	CloseHandle(m_completionPort);
-	m_network->NETDEBUG << "[IOCP] destoryPoll.";
+	m_network->NETWARN << "[IOCP] destoryPoll.";
 }
 
 #endif

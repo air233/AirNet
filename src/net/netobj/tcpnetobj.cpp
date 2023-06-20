@@ -156,6 +156,7 @@ bool TcpNetObj::asynConnect(InetAddress& address, uint64_t outms)
 
 bool TcpNetObj::send(const char* data, size_t len)
 {
+#ifndef _WIN32
 	ssize_t write_size = 0;
 	if (m_input_buf.size() == 0)
 	{
@@ -177,8 +178,16 @@ bool TcpNetObj::send(const char* data, size_t len)
 		m_input_buf.pushCString(data + write_size, len - write_size);
 		haveWrite(true);
 	}
-	
 	return true;
+#else
+	std::lock_guard<std::mutex> mylockguard(m_input_mutex);
+	m_input_buf.pushCString(data, len);
+
+	haveWrite(true);
+
+	//÷±Ω”–¥»ÎIOCP
+	return true;
+#endif
 }
 
 bool TcpNetObj::close()

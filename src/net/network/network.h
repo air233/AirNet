@@ -75,6 +75,7 @@ public:
 	void removeNetObj(uint64_t net_id);
 
 private:
+	int32_t m_run;
 	NetMode m_mode;
 	std::atomic<uint64_t> m_net_id;
 	

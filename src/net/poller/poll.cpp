@@ -1,6 +1,7 @@
 #include "poll.h"
 #include "../network/network.h"
 #include <thread>
+#include <iostream>
 
 NetJob::NetJob()
 {
@@ -37,7 +38,7 @@ void Poll::processJob()
 
 		if (netObj == nullptr)
 		{
-			m_network->NETDEBUG << "net job not find:" << job->m_net_id;
+			m_network->NETDEBUG << "net job not find:" << job->m_net_id << ",type:" << job->m_type << ",err:" << job->m_error;
 			continue;
 		}
 
@@ -45,6 +46,9 @@ void Poll::processJob()
 		{
 		case JobAccept:
 			m_network->m_onAccept(job->m_net_id);
+			
+			//开启监听读事件
+			enablePoll(netObj, true, false);
 			break;
 
 		case JobConnect:
@@ -55,6 +59,7 @@ void Poll::processJob()
 			{
 				m_network->deleteNetObj(job->m_net_id);
 			}
+
 			break;
 
 		case JobDisconnect:
@@ -94,6 +99,8 @@ void Poll::PostConnectJob(std::shared_ptr<BaseNetObj> netObj, int err)
 	{
 		netObj->setNetStatus(Connected);
 	}
+
+	//通知结果
 	m_network->asyncConnectResult(netObj->getNetID(), err);
 
 	std::shared_ptr<NetJob> job = std::make_shared<NetJob>();
@@ -135,6 +142,10 @@ void Poll::PostRecvJob(std::shared_ptr<BaseNetObj> netObj, char* buff, int len)
 	job->m_error = 0;
 	pushJob(job);
 }
+
+
+
+
 
 void Poll::pushJob(std::shared_ptr<NetJob> job)
 {

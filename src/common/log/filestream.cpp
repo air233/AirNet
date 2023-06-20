@@ -135,22 +135,20 @@ void FileStream::update(time_t update)
 
 void FileStream::flush()
 {
-	//std::cout << m_oss.str().c_str() << std::endl;
+	std::ostringstream out;
+	out << m_oss.str() << "\n";
+	m_oss.str("");
+	m_oss.clear();
+
 	time_t now;
-
 	std::string log_name = m_path + FileStream::getLogFileName(m_base, m_cut_mode, &now);
-
 	if (log_name != m_log_name)
 	{
 		assert(this->init() != false);
 	}
 
-	fprintf(m_file, m_oss.str().c_str());
-	fprintf(m_file, "\n");
+	fprintf(m_file, out.str().c_str());
 	fflush(m_file);
-
-	m_oss.str("");
-	m_oss.clear();
 
 	m_dirty = 0;
 }
@@ -158,12 +156,8 @@ void FileStream::flush()
 void FileStream::log(const char* level, const char* log)
 {
 	m_dirty = 1;
-	m_oss << "["<<GetMSTimeStr()<<"]";
-	m_oss <<"["<<level<<"]";
-	m_oss << " ";
-	m_oss << log;
-
-	std::cout << m_oss.str() << std::endl;
+	m_oss << "["<<GetMSTimeStr()<<"]" << "[" << level << "]" << " " << log << "\n";
+	//std::cout << m_oss.str() << std::endl;
 
 	if(m_async == 0)
 		flush();
@@ -181,18 +175,17 @@ void FileStream::set_dirty()
 
 //================================================================
 
+//TODO:多线程安全读写
 LogFileStream::LogFileStream(FileStream& log, const char* level)
 :m_log(log), m_level(level)
 {
-	m_oss << "[" << GetMSTimeStr() << "]";
-	m_oss << "[" << level << "]";
-	m_oss << " ";
+	m_oss << "[" << GetMSTimeStr() << "]" << "[" << level << "] ";
 }
 
 LogFileStream::LogFileStream(const LogFileStream& file):
 	m_log(file.m_log), m_level(file.m_level)
 {
-	m_oss << file.m_oss.str();
+	m_oss << file.m_oss.str() << "\n";
 }
 
 LogFileStream::~LogFileStream()
