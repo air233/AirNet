@@ -474,8 +474,6 @@ uint64_t Network::asynConnect(std::string ip, uint16_t port, uint64_t timeout /*
 
 bool Network::send(uint64_t net_id, const char* data, size_t size)
 {
-	NETDEBUG << "send :" << net_id;
-
 	auto netObj = getNetObj2(net_id);
 
 	if (netObj == nullptr)
@@ -486,6 +484,8 @@ bool Network::send(uint64_t net_id, const char* data, size_t size)
 
 	bool ret = netObj->send(data, size);
 
+	NETDEBUG << "send :" << net_id << ",ret:"<<ret;
+
 	if (ret == false)
 	{
 		close(net_id);
@@ -493,7 +493,9 @@ bool Network::send(uint64_t net_id, const char* data, size_t size)
 
 	//¿ªÆô¼àÌý¶ÁÐ´
 	int32_t error = 0;
-	ret = m_poll->enablePoll(netObj, true, true);
+
+	ret = m_poll->enablePoll(netObj, false, true);
+
 	return ret;
 }
 

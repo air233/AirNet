@@ -181,18 +181,16 @@ bool Poll::PostSendEvent(std::shared_ptr<BaseNetObj> netObj)
 bool Poll::PostSend(std::shared_ptr<BaseNetObj> netObj)
 {
 	std::string sendData;
-	int32_t remainSize = 0;
 	{
 		std::lock_guard<std::mutex> gurad(netObj->inputMutex());
 		if (netObj->inputBuffer()->size() == 0)
 		{
-			std::cout << "[IOCP] Send over." << std::endl;
+			//std::cout << "[IOCP] Send over." << std::endl;
 			return true;
 		}
 		else
 		{
 			netObj->inputBuffer()->peekString(sendData, MAX_BUFFER_SIZE);
-			remainSize = netObj->inputBuffer()->size();
 		}
 	}
 
@@ -204,7 +202,6 @@ bool Poll::PostSend(std::shared_ptr<BaseNetObj> netObj)
 	ioContext->DataBuf.buf = ioContext->Buffer;
 	ioContext->DataBuf.len = sizeof(ioContext->Buffer);
 	ioContext->type = IOType::IOSend;
-
 
 	DWORD lpNumberOfBytesSent;
 	int ret = WSASend(netObj->fd(), &ioContext->DataBuf, 1, &lpNumberOfBytesSent, 0, (LPOVERLAPPED)ioContext, 0);
@@ -269,8 +266,8 @@ void Poll::WorkerThread()
 			continue;
 		}
 
-		std::cout << "[IOCP] WorkerThread1 process event:" << CIOType[(int)ioContext->type] << std::endl;
-		//m_network->NETDEBUG << "[IOCP] WorkerThread1 process event:" << CIOType[(int)ioContext->type];
+		//std::cout << "[IOCP] WorkerThread1 process event:" << CIOType[(int)ioContext->type] << std::endl;
+		m_network->NETDEBUG << "[IOCP] WorkerThread1 process event:" << CIOType[(int)ioContext->type];
 
 		if (ioContext->type == IOType::IOAccept)
 		{
@@ -317,7 +314,7 @@ void Poll::WorkerThread()
 			auto netObj = m_network->getNetObj2(ioContext->NetID);
 			if (netObj == nullptr)
 			{
-				//m_network->NETERROR << "[IOCP] recv not find net obj." << ioContext->NetID;
+				m_network->NETERROR << "[IOCP] recv not find net obj." << ioContext->NetID;
 				delete ioContext;
 				continue;
 			}
@@ -325,7 +322,7 @@ void Poll::WorkerThread()
 			if (bytesTransferred == 0)
 			{
 				// 客户端关闭连接
-				//m_network->NETDEBUG << "[IOCP] connections disconnect.";
+				m_network->NETDEBUG << "[IOCP] connections disconnect.";
 				//std::cout << "[IOCP] connections disconnect:" << GetLastError() << std::endl;
 				PostDisConnectJob(netObj, GetLastError());
 				delete ioContext;
@@ -336,7 +333,7 @@ void Poll::WorkerThread()
 			PostRecvJob(netObj, ioContext->Buffer, bytesTransferred);
 
 			//继续接收事件
-			//PostRecvEvent(netObj);
+			PostRecvEvent(netObj);
 		}
 		else if (ioContext->type == IOType::IOConn)
 		{
@@ -385,7 +382,7 @@ void Poll::WorkerThread()
 				continue;
 			}
 
-			//PostSendEvent(netObj);
+			PostSendEvent(netObj);
 		}
 
 		delete ioContext;
@@ -481,28 +478,29 @@ bool Poll::enablePoll(std::shared_ptr<BaseNetObj> netObj, bool read_enable, bool
 	{
 		if (netObj->getNetMode() == (int)NetMode::TCP)
 		{
-			ret = PostRecv(netObj);
+			ret = PostRecvEvent(netObj);
 		}
-		//TODO:TCP|UDP
-	}
 
-	if (ret == false)
-	{
-		return false;
+		//TODO:TCP|UDP
+		if (ret == false)
+		{
+			return false;
+		}
 	}
 
 	if (write_enable)
 	{
 		if (netObj->getNetMode() == (int)NetMode::TCP)
 		{
-			ret = PostSend(netObj);
+			ret = PostSendEvent(netObj);
 		}
-		//TODO:TCP|UDP
-	}
 
-	if (ret == false)
-	{
-		return false;
+		//TODO:TCP|UDP
+
+		if (ret == false)
+		{
+			return false;
+		}
 	}
 
 	return true;

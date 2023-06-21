@@ -70,13 +70,13 @@ int test_server()
 	//·þÎñÆ÷Æô¶¯
 	server.m_network->start();
 
-	//std::cout << "asynConnect:" << GetMSTimeStr() << std::endl;
-	//auto net_id = server.m_network->asynConnect("192.168.2.161", 1301, 5000);
-	//std::cout << "connect id :" << net_id << std::endl;
+	std::cout << "asynConnect:" << GetMSTimeStr() << std::endl;
+	auto net_id = server.m_network->asynConnect("192.168.2.161", 1301, 5000);
+	std::cout << "connect id :" << net_id << std::endl;
 
-	TCPConfig config = { 0,0,0 };
-	auto net_id2 = server.m_network->linstenTCP("0.0.0.0", 8888, config);
-	std::cout << "listen id :" << net_id2 << std::endl;
+	//TCPConfig config = { 0,0,0 };
+	//auto net_id2 = server.m_network->linstenTCP("0.0.0.0", 8888, config);
+	//std::cout << "listen id :" << net_id2 << std::endl;
 
 	while (true)
 	{
