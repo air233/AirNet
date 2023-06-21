@@ -5,8 +5,16 @@
 #include "../../common/buffer/buffer.h"
 
 #include <mutex>
+#include <vector>
+#include <string>
 
 class Network;
+
+struct Message
+{
+	InetAddress m_addr;
+	std::string m_message;
+};
 
 class BaseNetObj : public  INetObj
 {
@@ -25,7 +33,7 @@ public:
 	std::mutex& outputMutex() override;
 	virtual Buffer* inputBuffer() override;
 	virtual Buffer* outputBuffer() override;
-
+	
 	SOCKET fd() override;
 	int32_t getError() override;
 	void setError(int32_t error);
@@ -36,8 +44,10 @@ public:
 	virtual bool connect(InetAddress& address,uint64_t outms);
 	virtual bool asynConnect(InetAddress& address, uint64_t outms);
 	virtual bool send(const char* data, size_t len);
+	virtual bool sendTo(InetAddress& address,const char* data, size_t len);
 	virtual bool isListen();
 	virtual bool close();
+	virtual bool getMessage(Message& msg);
 
 	void haveRead(bool enable);
 	void haveWrite(bool enable);

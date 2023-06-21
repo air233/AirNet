@@ -43,6 +43,11 @@ int32_t selectSocket(SOCKET sockfd, int64_t timeout);
 ssize_t writeSocket(SOCKET sockfd, const void* buf, size_t count, int32_t& error);
 ssize_t readSocket(SOCKET sockfd, void* buf, size_t count, int32_t& error);
 
+ssize_t writeToSocket(SOCKET sockfd, const void* buf, size_t count,
+	const struct sockaddr* dest_addr, socklen_t addrlen, int32_t& error);
+
+ssize_t readFromSocket(SOCKET sockfd, void* buf, size_t count, 
+	struct sockaddr* dest_addr, socklen_t* addrlen, int32_t& error);
 
 
 //

@@ -2,8 +2,8 @@
 #include "../../common/until/times.h"
 #include "../socket/socketops.h"
 #include "../netobj/tcpnetobj.h"
-//#include "../netobj/udpsocket.h"
-//#include "../netobj/kcpsocket.h"
+#include "../netobj/udpnetobj.h"
+//#include "../netobj/kcpnetobj.h"
 
 #include <thread>
 #ifdef _WIN32
@@ -42,7 +42,21 @@ Network::~Network()
 
 std::shared_ptr<BaseNetObj> Network::makeNetObj(Network* network, sa_family_t family)
 {
-	SOCKET sock = createTCPSocket(family);
+	SOCKET sock = INVALID_SOCKET;
+
+	if (network->getNetMode() == (int)NetMode::TCP)
+	{
+		sock = createTCPSocket(family);
+	}
+	else if (network->getNetMode() == (int)NetMode::UDP)
+	{
+		sock = createUDPSocket(family);
+	}
+	else
+	{
+		NETERROR << "invalid net mode:" << network->getNetMode();
+		return nullptr;
+	}
 
 	return makeNetObj(network, sock);
 }
@@ -55,11 +69,11 @@ std::shared_ptr<BaseNetObj> Network::makeNetObj(Network* network, SOCKET sock)
 
 	if (network->getNetMode() == (int)NetMode::TCP)
 	{
-		netObj = std::make_shared<TcpNetObj>(netid, sock);
+		netObj = std::make_shared<TCPNetObj>(netid, sock);
 	}
 	else if (network->getNetMode() == (int)NetMode::UDP)
 	{
-		//TODO:其他Mode
+		netObj = std::make_shared<UDPNetObj>(netid, sock);
 	}
 	else if (network->getNetMode() == (int)NetMode::KCP)
 	{
@@ -146,7 +160,7 @@ uint64_t Network::linstenTCP(InetAddress& address, TCPServerConfig& config)
 
 	m_server_obj = makeNetObj(this, family);
 
-	std::shared_ptr<TcpNetObj> tcpNetObj = std::dynamic_pointer_cast<TcpNetObj>(m_server_obj);
+	std::shared_ptr<TCPNetObj> tcpNetObj = std::dynamic_pointer_cast<TCPNetObj>(m_server_obj);
 
 	if (tcpNetObj == nullptr)
 	{
@@ -299,7 +313,8 @@ void Network::deleteNetObj(uint64_t net_id)
 	if (netObj == nullptr) return;
 	NETDEBUG << "delete net obj. id:" << net_id;
 	
-	netObj->close();
+	netObj->close();/*网络对象关闭*/
+	
 	m_poll->delPoll(netObj);
 
 	removeNetObj(net_id);
@@ -314,14 +329,24 @@ void Network::asyncConnectResult(uint64_t net_id, int32_t err)
 		return;
 	}
 
+	net_obj->setError(err);
+
+	if (err == NET_SUCCESS)
+	{
+		net_obj->setNetStatus(Connected);
+	}
+	else
+	{
+		net_obj->setNetStatus(Disconnected);
+	}
+	
 	std::lock_guard<std::mutex> guard(m_connect_mutex);
 	if (m_connecting.count(net_id) == 0)
 	{
 		NETDEBUG << "connecting not find net obj:" << net_id;
 		return;
 	}
-
-	net_obj->setError(err);
+	
 	m_connecting.erase(net_id);
 }
 
@@ -376,44 +401,44 @@ void Network::processAsynConnectTimeOut()
 	}
 }
 
-uint64_t Network::linsten(InetAddress& address)
-{
-	if (m_server_obj != nullptr)
-	{
-		return INVALID_NET_ID;
-	}
-
-	sa_family_t family = address.family();
-
-	m_server_obj = makeNetObj(this, family);
-
-	if (false == m_server_obj->bind(address))
-	{
-		return INVALID_NET_ID;
-	}
-
-	if (false == m_server_obj->listen())
-	{
-		return INVALID_NET_ID;
-	}
-
-	if (false == insertNetObj(m_server_obj))
-	{
-		auto netObj = getNetObj2(m_server_obj->getNetID());
-		if (netObj) netObj->close();
-
-		return INVALID_NET_ID;
-	}
-
-	return m_server_obj->getNetID();
-}
-
-uint64_t Network::linsten(std::string ip, uint16_t port)
-{
-	InetAddress address(ip, port);
-
-	return linsten(address);
-}
+//uint64_t Network::linsten(InetAddress& address)
+//{
+//	if (m_server_obj != nullptr)
+//	{
+//		return INVALID_NET_ID;
+//	}
+//
+//	sa_family_t family = address.family();
+//
+//	m_server_obj = makeNetObj(this, family);
+//
+//	if (false == m_server_obj->bind(address))
+//	{
+//		return INVALID_NET_ID;
+//	}
+//
+//	if (false == m_server_obj->listen())
+//	{
+//		return INVALID_NET_ID;
+//	}
+//
+//	if (false == insertNetObj(m_server_obj))
+//	{
+//		auto netObj = getNetObj2(m_server_obj->getNetID());
+//		if (netObj) netObj->close();
+//
+//		return INVALID_NET_ID;
+//	}
+//
+//	return m_server_obj->getNetID();
+//}
+//
+//uint64_t Network::linsten(std::string ip, uint16_t port)
+//{
+//	InetAddress address(ip, port);
+//
+//	return linsten(address);
+//}
 
 uint64_t Network::connect(InetAddress& address, uint64_t timeout)
 {
@@ -439,6 +464,39 @@ uint64_t Network::connect(std::string ip, uint16_t port, uint64_t timeout)
 	InetAddress address(ip, port);
 
 	return connect(address, timeout);
+}
+
+uint64_t Network::bindUDP(InetAddress& address)
+{
+	if (m_mode != NetMode::UDP)
+	{
+		return INVALID_NET_ID;
+	}
+
+	sa_family_t family = address.family();
+
+	m_server_obj = makeNetObj(this, family);
+
+	if (false == m_server_obj->bind(address))
+	{
+		return INVALID_NET_ID;
+	}
+
+	NETDEBUG << "UDPServer fd:" << m_server_obj->fd() << ", bind address : " << address.toIpPort();
+
+	if (false == insertNetObj(m_server_obj))
+	{
+		return INVALID_NET_ID;
+	}
+
+	return m_server_obj->getNetID();
+}
+
+uint64_t Network::bindUDP(std::string ip, uint16_t port)
+{
+	InetAddress address(ip, port);
+
+	return bindUDP(address);
 }
 
 uint64_t Network::asynConnect(InetAddress& address, uint64_t timeout)
@@ -484,17 +542,27 @@ bool Network::send(uint64_t net_id, const char* data, size_t size)
 
 	bool ret = netObj->send(data, size);
 
-	NETDEBUG << "send :" << net_id << ",ret:"<<ret;
-
 	if (ret == false)
 	{
-		close(net_id);
+		m_onError(net_id, netObj->getError());
+		return false; 
 	}
 
-	//开启监听读写
-	int32_t error = 0;
+	//开启监听写事件
+	ret = m_poll->enableWritePoll(netObj, true);
 
-	ret = m_poll->enablePoll(netObj, false, true);
+	return ret;
+}
+
+bool Network::sendTo(InetAddress& address, const char* data, size_t size)
+{
+	std::string message(data, size);
+
+	bool ret = m_server_obj->sendTo(address, data, size);
+
+	//开启监听写事件
+	ret = m_poll->enableWritePoll(m_server_obj, true);
+
 
 	return ret;
 }
@@ -513,6 +581,19 @@ void Network::close(uint64_t net_id)
 	m_onDisconnect(net_id);
 
 	/*释放netobj 对象消失*/
+	deleteNetObj(net_id);
+}
+
+void Network::disconnect(uint64_t net_id)
+{
+	auto netObj = getNetObj2(net_id);
+
+	if (netObj == nullptr)
+	{
+		NETERROR << "invalid net id :" << net_id;
+		return;
+	}
+
 	deleteNetObj(net_id);
 }
 

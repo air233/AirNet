@@ -1,11 +1,11 @@
 #pragma once
 #include "basenetobj.h"
 
-class TcpNetObj : public BaseNetObj
+class TCPNetObj : public BaseNetObj
 {
 public:
-	TcpNetObj(uint64_t net_id, SOCKET fd);
-	~TcpNetObj();
+	TCPNetObj(uint64_t net_id, SOCKET fd);
+	~TCPNetObj();
 
 	void setNoDelay(bool on);
 	void setReuseAddr(bool on);

@@ -71,6 +71,11 @@ Buffer* BaseNetObj::outputBuffer()
 	return &m_output_buf;
 }
 
+bool BaseNetObj::getMessage(Message& msg)
+{
+	return false;
+}
+
 SOCKET BaseNetObj::fd()
 {
 	return m_fd;
@@ -115,6 +120,11 @@ bool BaseNetObj::listen()
 }
 
 bool BaseNetObj::send(const char* data, size_t len)
+{
+	return false;
+}
+
+bool BaseNetObj::sendTo(InetAddress& address, const char* data, size_t len)
 {
 	return false;
 }

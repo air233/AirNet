@@ -28,6 +28,7 @@ public:
 	sa_family_t family() const;
 
 	struct sockaddr* getSockAddr();
+	socklen_t getSockAddrLen();
 	struct sockaddr* getSockAddr4();
 	struct sockaddr* getSockAddr6();
 

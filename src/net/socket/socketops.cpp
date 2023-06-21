@@ -348,3 +348,43 @@ ssize_t readSocket(SOCKET sockfd, void* buf, size_t count, int32_t& error)
 #endif
 }
 
+ssize_t writeToSocket(SOCKET sockfd, const void* buf, size_t count, const struct sockaddr* dest_addr, socklen_t addrlen, int32_t& error)
+{
+	error = 0;
+
+	ssize_t write_size = 0;
+
+	write_size = ::sendto(sockfd, (const char*)buf, count, 0, dest_addr, addrlen);
+
+	if (write_size < 0)
+	{
+#ifdef _WIN32
+		error = WSAGetLastError();
+#else
+		error = errno;
+#endif
+	}
+
+	return write_size;
+}
+
+ssize_t readFromSocket(SOCKET sockfd, void* buf, size_t count, struct sockaddr* dest_addr, socklen_t* addrlen, int32_t& error)
+{
+	error = 0;
+
+	ssize_t recv_size = 0;
+
+	recv_size = ::recvfrom(sockfd,(char*)buf, count, 0, dest_addr, addrlen);
+
+	if (recv_size < 0)
+	{
+#ifdef _WIN32
+		error = WSAGetLastError();
+#else
+		error = errno;
+#endif
+	}
+
+	return recv_size;
+}
+

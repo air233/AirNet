@@ -11,7 +11,7 @@
 
 #include <iostream>
 
-TcpNetObj::TcpNetObj(uint64_t net_id, SOCKET fd):
+TCPNetObj::TCPNetObj(uint64_t net_id, SOCKET fd):
 	BaseNetObj(net_id,fd)
 {
 	m_net_mode = (int)NetMode::TCP;
@@ -21,30 +21,30 @@ TcpNetObj::TcpNetObj(uint64_t net_id, SOCKET fd):
 	setKeepAlive(true);
 }
 
-TcpNetObj::~TcpNetObj()
+TCPNetObj::~TCPNetObj()
 {
 
 }
 
-void TcpNetObj::setNoDelay(bool on)
+void TCPNetObj::setNoDelay(bool on)
 {
 	int optionValue = on ? 1 : 0;
 	::setsockopt(m_fd, IPPROTO_TCP, TCP_NODELAY, (const char*)&optionValue, sizeof(optionValue));
 }
 
-void TcpNetObj::setReuseAddr(bool on)
+void TCPNetObj::setReuseAddr(bool on)
 {
 	int optionValue = on ? 1 : 0;
 	::setsockopt(m_fd, SOL_SOCKET, SO_REUSEADDR, (const char*)&optionValue, sizeof(optionValue));
 }
 
-void TcpNetObj::setKeepAlive(bool on)
+void TCPNetObj::setKeepAlive(bool on)
 {
 	int optionValue = on ? 1 : 0;
 	::setsockopt(m_fd, SOL_SOCKET, SO_KEEPALIVE, (const char*)&optionValue, sizeof(optionValue));
 }
 
-void TcpNetObj::setLingerZero(bool on)
+void TCPNetObj::setLingerZero(bool on)
 {
 	if (on)
 	{
@@ -55,7 +55,7 @@ void TcpNetObj::setLingerZero(bool on)
 	m_network->NETDEBUG << "TCP obj set lingerzero : " << on;
 }
 
-bool TcpNetObj::bind(InetAddress& address)
+bool TCPNetObj::bind(InetAddress& address)
 {
 	BaseNetObj::bind(address);
 
@@ -69,7 +69,7 @@ bool TcpNetObj::bind(InetAddress& address)
 	return true;
 }
 
-bool TcpNetObj::listen()
+bool TCPNetObj::listen()
 {
 	//BaseNetObj::listen();
 	m_listen = 1;
@@ -89,7 +89,7 @@ bool TcpNetObj::listen()
 	return true;
 }
 
-bool TcpNetObj::connect(InetAddress& address, uint64_t outms)
+bool TCPNetObj::connect(InetAddress& address, uint64_t outms)
 {
 	m_peerAddr = address;
 
@@ -121,7 +121,7 @@ bool TcpNetObj::connect(InetAddress& address, uint64_t outms)
 	return true;
 }
 
-bool TcpNetObj::asynConnect(InetAddress& address, uint64_t outms)
+bool TCPNetObj::asynConnect(InetAddress& address, uint64_t outms)
 {
 	(void)outms;
 
@@ -154,7 +154,7 @@ bool TcpNetObj::asynConnect(InetAddress& address, uint64_t outms)
 #endif
 }
 
-bool TcpNetObj::send(const char* data, size_t len)
+bool TCPNetObj::send(const char* data, size_t len)
 {
 #ifndef _WIN32
 	ssize_t write_size = 0;
@@ -190,7 +190,7 @@ bool TcpNetObj::send(const char* data, size_t len)
 #endif
 }
 
-bool TcpNetObj::close()
+bool TCPNetObj::close()
 {
 	closeSocket(m_fd);
 	m_fd = INVALID_SOCKET;

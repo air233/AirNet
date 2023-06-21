@@ -3,7 +3,7 @@
 #include "../common/log/log.h"
 #include "socket/socketops.h"
 
-void defaultAcceptCallback(uint64_t net_id)
+void defaultNewConnectCallback(uint64_t net_id)
 {
 	LOG_DEBUG << "accepted socket : " << net_id;
 }
@@ -25,9 +25,14 @@ void defaultReceiveCallback(const uint64_t net_id, Buffer* buf)
 	buf->dropAll();
 }
 
+void defaultReceiveFromCallback(InetAddress& addr, std::string& message)
+{
+	LOG_DEBUG << "received from : " << addr.toIpPort() << ", msg:" << message;
+}
+
 void defaultErrorCallback(uint64_t net_id, int32_t error_id)
 {
-	LOG_DEBUG << "error socket : " << net_id;
+	LOG_DEBUG << "Error. net id : " << net_id << ", err:" << error_id;
 }
 
 //返回智能指针,不需要释放内存

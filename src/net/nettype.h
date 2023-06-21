@@ -1,6 +1,8 @@
 #pragma once
 #include <cstdint>
 
+
+
 #ifdef _WIN32
 #define sa_family_t ADDRESS_FAMILY
 #define ssize_t	SSIZE_T 
@@ -47,10 +49,11 @@ enum NetStatus
 enum JobType
 {
 	JobNone,
-	JobAccept,
+	JobNewConn,
 	JobConnect,
 	JobDisconnect,
 	JobReveive,
+	JobReveiveFrom,
 	JobError,
 };
 
@@ -85,3 +88,4 @@ struct ConnectInfoComparator
 		return lhs.m_net_id < rhs.m_net_id;
 	}
 };
+

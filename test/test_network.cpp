@@ -16,7 +16,8 @@ public:
 	void ConnectCallback(const uint64_t, int32_t);
 	void Disconnected(const uint64_t);
 	void Receive(const uint64_t net_id, Buffer* buff);
-	void AccpetCallback(const uint64_t net_id);
+	void NewConnectCallback(const uint64_t net_id);
+	void ReceiveFrom(InetAddress& addr, std::string& message);
 };
 
 
@@ -51,22 +52,31 @@ void MyServer::Receive(const uint64_t net_id, Buffer* buff)
 	m_network->send(net_id, str.c_str(), str.size());
 }
 
-void MyServer::AccpetCallback(const uint64_t net_id)
+void MyServer::NewConnectCallback(const uint64_t net_id)
 {
 	std::cout << "AccpetID:" << net_id << std::endl;
 
 	m_network->send(net_id, "hello", 5);
 }
 
-int test_server()
+void MyServer::ReceiveFrom(InetAddress& addr, std::string& message)
+{
+	std::cout << "ReceiveFrom:" << addr.toIpPort() << "msg:" << message << std::endl;
+
+	m_network->sendTo(addr, message.c_str(),message.size());
+}
+
+int test_TCPServer()
 {
 	MyServer server;
 	server.m_network = getNetwork(NetMode::TCP);
+
 	//回调函数
 	server.m_network->setConnectCallback(std::bind(&MyServer::ConnectCallback, &server, std::placeholders::_1, std::placeholders::_2));
 	server.m_network->setDisConnectCallback(std::bind(&MyServer::Disconnected, &server, std::placeholders::_1));
 	server.m_network->setRecvCallback(std::bind(&MyServer::Receive, &server, std::placeholders::_1, std::placeholders::_2));
-	server.m_network->setAcceptCallback(std::bind(&MyServer::AccpetCallback, &server, std::placeholders::_1));
+	server.m_network->setNewConnectCallback(std::bind(&MyServer::NewConnectCallback, &server, std::placeholders::_1));
+	
 	//服务器启动
 	server.m_network->start();
 
@@ -74,9 +84,9 @@ int test_server()
 	auto net_id = server.m_network->asynConnect("192.168.2.161", 1301, 5000);
 	std::cout << "connect id :" << net_id << std::endl;
 
-	//TCPConfig config = { 0,0,0 };
-	//auto net_id2 = server.m_network->linstenTCP("0.0.0.0", 8888, config);
-	//std::cout << "listen id :" << net_id2 << std::endl;
+	TCPConfig config = { 0,0,0 };
+	auto net_id2 = server.m_network->linstenTCP("0.0.0.0", 8888, config);
+	std::cout << "listen id :" << net_id2 << std::endl;
 
 	while (true)
 	{
@@ -88,6 +98,46 @@ int test_server()
 	server.m_network->stop();
 	return 0;
 }
+
+int test_UDPServer()
+{
+	MyServer server;
+	server.m_network = getNetwork(NetMode::UDP);
+
+	//回调函数
+	server.m_network->setConnectCallback(std::bind(&MyServer::ConnectCallback, &server, std::placeholders::_1, std::placeholders::_2));
+	server.m_network->setDisConnectCallback(std::bind(&MyServer::Disconnected, &server, std::placeholders::_1));
+	server.m_network->setRecvCallback(std::bind(&MyServer::Receive, &server, std::placeholders::_1, std::placeholders::_2));
+	server.m_network->setNewConnectCallback(std::bind(&MyServer::NewConnectCallback, &server, std::placeholders::_1));
+	server.m_network->setRecvFromCallback(std::bind(&MyServer::ReceiveFrom, &server, std::placeholders::_1, std::placeholders::_2));
+	//服务器启动
+	server.m_network->start();
+
+	//std::cout << "asynConnect:" << GetMSTimeStr() << std::endl;
+	//auto net_id = server.m_network->asynConnect("192.168.2.161", 1301, 5000);
+	//std::cout << "connect id :" << net_id << std::endl;
+
+	//TCPConfig config = { 0,0,0 };
+	//auto net_id2 = server.m_network->linstenTCP("0.0.0.0", 8888, config);
+	//std::cout << "listen id :" << net_id2 << std::endl;
+	
+	server.m_network->bindUDP("0.0.0.0", 8888);
+
+
+
+	while (true)
+	{
+		server.m_network->update();
+
+		Sleep(100);
+	}
+
+	server.m_network->stop();
+	return 0;
+
+	return 0;
+}
+
 
 int test_getNetID()
 {
@@ -122,7 +172,9 @@ int test_getNetID()
 
 int main()
 {
-	test_server();
+	//test_TCPServer();
+
+	test_UDPServer();
 
 	return 0;
 }

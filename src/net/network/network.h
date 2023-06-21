@@ -32,27 +32,39 @@ public:
 	void update() override;
 	void stop() override;
 
-	//TODO:设置SSL/TLS连接
+	//TODO:设置SSL/TLS连接 待拓展
 	virtual void setOpenSSL(bool bEnable) override;
 
+	/*监听函数*/
 	uint64_t linstenTCP(InetAddress& address, TCPServerConfig& config) override;
 	uint64_t linstenTCP(std::string ip, uint16_t port, TCPServerConfig& config) override;
-	uint64_t linsten(InetAddress& address) override;
-	uint64_t linsten(std::string ip, uint16_t port) override;
+	//uint64_t linsten(InetAddress& address) override;
+	//uint64_t linsten(std::string ip, uint16_t port) override;
 
+	uint64_t bindUDP(InetAddress& address) override;
+	uint64_t bindUDP(std::string ip, uint16_t port) override;
+
+	/*异步连接*/
 	uint64_t asynConnect(InetAddress& address, uint64_t timeout = 10000) override;
 	uint64_t asynConnect(std::string ip, uint16_t port, uint64_t timeout = 10000) override;
 
+	/*同步连接*/
 	uint64_t connect(InetAddress& address, uint64_t timeout = 10000) override;
 	uint64_t connect(std::string ip, uint16_t port, uint64_t timeout = 10000) override;
 
+	/*发送数据*/
 	bool send(uint64_t net_id, const char* data, size_t size) override;
+	bool sendTo(InetAddress& address, const char* data, size_t size) override;
+
+	/*关闭连接*/
 	void close(uint64_t net_id) override;
+	/*断开连接*/
+	void disconnect(uint64_t net_id) override;
 
 	int getNetMode() override;
 	std::shared_ptr<INetObj> getNetObj(uint64_t net_id) override;
 
-/*以下接口不暴露*/
+/*========================以下接口不暴露到用户层========================*/
 public:
 	void rlease();
 	Log& getLog() { return m_log; };
@@ -62,40 +74,48 @@ public:
 	SOCKET getListenSock();
 	//uint64_t processAccept(SOCKET sock,int32_t error);
 
+	/*同步异步调用结果(IO线程)*/
 	void asyncConnectResult(uint64_t net_id, int32_t err);
+
+	/*处理异步连接超时(主线程)*/
 	void processAsynConnectTimeOut();
 
 	/*增删改查*/
 	std::shared_ptr<BaseNetObj> makeNetObj(Network* network, sa_family_t family);
 	std::shared_ptr<BaseNetObj> makeNetObj(Network* network, SOCKET sock);
-
 	std::shared_ptr<BaseNetObj> getNetObj2(uint64_t net_id);
-	
 	bool insertNetObj(std::shared_ptr<BaseNetObj> netObj,bool addPoll=true);
 	void removeNetObj(uint64_t net_id);
 
 private:
 	int32_t m_run;
+
+	/*网络库模式*/
 	NetMode m_mode;
+
+	/*当前分配的NetID*/
 	std::atomic<uint64_t> m_net_id;
 	
-	SOCKET m_idle_fd;/*空置Sock*/
+	/*空置Sock 用来处理当FD资源使用完后,AcceptFD一直可读问题*/
+	SOCKET m_idle_fd;
 
 	/*网络对象,(主线程，IO线程)*/
 	std::shared_mutex m_net_mutex;
 	std::unordered_map<uint64_t, std::shared_ptr<BaseNetObj>> m_net_objs;
-
+	
+	/*网络对象*/
 	std::shared_ptr<BaseNetObj> m_server_obj;
+	
+	/*网络事件处理器*/
 	std::shared_ptr<Poll> m_poll;
 
 	/*异步连接队列 (主线程，IO线程)*/
 	std::mutex m_connect_mutex;
 	std::map<uint64_t,ConnectInfo> m_connecting;
 
-	//std::queue<uint64_t> m_disconnect;
 	Log m_log;
 
-	/*设置*/
+	/*待拓展设置*/
 	uint8_t m_ssl;
 	uint8_t m_epoll_et;
 };

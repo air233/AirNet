@@ -31,6 +31,7 @@ add_executable(network_test
 "${NET_DIR}/poller/epoll.cpp"
 "${NET_DIR}/netobj/basenetobj.cpp"
 "${NET_DIR}/netobj/tcpnetobj.cpp"
+"${NET_DIR}/netobj/udpnetobj.cpp"
 "${NET_DIR}/until/inetAddress.cpp"
 "${NET_DIR}/inetwork.cpp"
 

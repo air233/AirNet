@@ -206,6 +206,18 @@ struct sockaddr* InetAddress::getSockAddr()
 	}
 }
 
+socklen_t InetAddress::getSockAddrLen()
+{
+	if (family() == AF_INET)
+	{
+		return sizeof sockaddr_in;
+	}
+	else
+	{
+		return sizeof sockaddr_in6;
+	}
+}
+
 struct sockaddr* InetAddress::getSockAddr4()
 {
 	return static_cast<struct sockaddr*>((void*)(&m_addr));

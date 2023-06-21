@@ -1,5 +1,6 @@
 #include "poll.h"
 #include "../network/network.h"
+#include "../netobj/udpnetobj.h"
 #include <thread>
 #include <iostream>
 
@@ -27,6 +28,8 @@ void Poll::processJob()
 		net_jobs.swap(m_net_jobs);
 	}
 	
+	Message msg;
+
 	while (!net_jobs.empty())
 	{
 		std::shared_ptr<NetJob> job = net_jobs.front();
@@ -42,13 +45,15 @@ void Poll::processJob()
 			continue;
 		}
 
+		int ret = 0;
+
 		switch (job->m_type)
 		{
-		case JobAccept:
-			m_network->m_onAccept(job->m_net_id);
+		case JobNewConn:
+			m_network->m_onNewConnect(job->m_net_id);
 			
 			//¿ªÆô¼àÌý¶ÁÊÂ¼þ
-			enablePoll(netObj, true, false);
+			enableReadPoll(netObj, true);
 			break;
 
 		case JobConnect:
@@ -71,6 +76,12 @@ void Poll::processJob()
 			m_network->m_onRecv(job->m_net_id, netObj->outputBuffer());
 			break;
 
+		case JobReveiveFrom:
+			ret = netObj->getMessage(msg);
+			if (ret == true)
+				m_network->m_onRecvFrom(msg.m_addr, msg.m_message);
+			break;
+
 		case JobError:
 			m_network->m_onError(job->m_net_id, job->m_error);
 			m_network->deleteNetObj(job->m_net_id);
@@ -83,12 +94,12 @@ void Poll::processJob()
 	}
 }
 
-void Poll::PostAccpetJob(std::shared_ptr<BaseNetObj> netObj)
+void Poll::PostNewConnectJob(std::shared_ptr<BaseNetObj> netObj)
 {
 	netObj->setNetStatus(Connected);
 
 	std::shared_ptr<NetJob> job = std::make_shared<NetJob>();
-	job->m_type = JobAccept;
+	job->m_type = JobNewConn;
 	job->m_net_id = netObj->getNetID();
 	pushJob(job);
 }
@@ -143,9 +154,23 @@ void Poll::PostRecvJob(std::shared_ptr<BaseNetObj> netObj, char* buff, int len)
 	pushJob(job);
 }
 
+void Poll::PostRecvFromJob(std::shared_ptr<BaseNetObj> netObj, InetAddress& addr, char* buff, int len)
+{
+	auto udpNetObj = std::static_pointer_cast<UDPNetObj>(netObj);
 
+	if (udpNetObj == nullptr) return;
 
+	Message recvMsg;
+	recvMsg.m_addr = InetAddress(addr);
+	recvMsg.m_message.assign(buff, buff+len);
+	udpNetObj->pushMessage(recvMsg);
 
+	std::shared_ptr<NetJob> job = std::make_shared<NetJob>();
+	job->m_type = JobReveiveFrom;
+	job->m_net_id = netObj->getNetID();
+	job->m_error = 0;
+	pushJob(job);
+}
 
 void Poll::pushJob(std::shared_ptr<NetJob> job)
 {

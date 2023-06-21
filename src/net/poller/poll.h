@@ -1,6 +1,7 @@
 #pragma once
 #include "../nettype.h"
 #include "../netobj/basenetobj.h"
+#include "../until/InetAddress.h"
 
 #include <memory>
 #include <queue>
@@ -51,7 +52,9 @@ public:
 
 	bool addPoll(std::shared_ptr<BaseNetObj> netObj);
 	void delPoll(std::shared_ptr<BaseNetObj> netObj);
-	bool enablePoll(std::shared_ptr<BaseNetObj> netObj, bool read_enable, bool write_enable);
+
+	bool enableReadPoll(std::shared_ptr<BaseNetObj> netObj, bool enable);
+	bool enableWritePoll(std::shared_ptr<BaseNetObj> netObj, bool enable);
 
 	int32_t waitPoll();
 	void workPoll();
@@ -71,12 +74,12 @@ private:
 
 	std::vector<std::thread> m_threads;
 
-	void PostAccpetJob(std::shared_ptr<BaseNetObj> netObj);
+	void PostNewConnectJob(std::shared_ptr<BaseNetObj> netObj);
 	void PostConnectJob(std::shared_ptr<BaseNetObj> netObj, int err);
 	void PostErrorJob(std::shared_ptr<BaseNetObj> netObj, int err);
 	void PostDisConnectJob(std::shared_ptr<BaseNetObj> netObj, int err);
 	void PostRecvJob(std::shared_ptr<BaseNetObj> netObj,char* buff,int len);
-
+	void PostRecvFromJob(std::shared_ptr<BaseNetObj> netObj,InetAddress& addr, char* buff, int len);
 #ifdef _WIN32
 	HANDLE m_completionPort;
 	LPFN_CONNECTEX m_ConnectEx;
