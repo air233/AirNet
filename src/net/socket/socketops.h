@@ -18,13 +18,13 @@ SOCKET createFd();
 SOCKET createTCPSocket(sa_family_t family);
 SOCKET createUDPSocket(sa_family_t family);
 
-SOCKET acceptSocket(SOCKET sockfd, struct sockaddr* addr, int32_t& error);
+SOCKET acceptSocket	(SOCKET sockfd, struct sockaddr* addr, int32_t addrlen, int32_t& error);
 
 int32_t listenSocket(SOCKET sockfd, int32_t& error);
 
-int32_t connectSocket(SOCKET sockfd, struct sockaddr* addr, int32_t& error);
+int32_t connectSocket(SOCKET sockfd, struct sockaddr* addr, int32_t addrlen, int32_t& error);
 
-int32_t bindSocket(SOCKET sockfd, struct sockaddr* addr, int32_t& error);
+int32_t bindSocket(SOCKET sockfd, struct sockaddr* addr, int32_t addrlen, int32_t& error);
 
 void shutdownSocketWrite(SOCKET sockfd);
 void closeSocket(SOCKET sockfd);
@@ -48,18 +48,4 @@ ssize_t writeToSocket(SOCKET sockfd, const void* buf, size_t count,
 
 ssize_t readFromSocket(SOCKET sockfd, void* buf, size_t count, 
 	struct sockaddr* dest_addr, socklen_t* addrlen, int32_t& error);
-
-
-//
-//
-//ssize_t read(SOCKET sockfd, void* buf, size_t count);
-//
-////TODO:Windows  «∑Ò÷ß≥÷
-//ssize_t readv(SOCKET sockfd, const struct iovec* iov, int iovcnt);
-//
-
-//
-//void shutdownWrite(SOCKET sockfd);
-//
-//int getSocketError(SOCKET sockfd);
 

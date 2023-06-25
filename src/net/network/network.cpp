@@ -448,12 +448,12 @@ uint64_t Network::bindUDP(InetAddress& address)
 
 	m_server_obj = makeNetObj(this, family);
 
+	NETDEBUG << "UDPServer fd:" << m_server_obj->fd() << ", family:" << family << ", bind address:" << address.toIpPort();
+	
 	if (false == m_server_obj->bind(address))
 	{
 		return INVALID_NET_ID;
 	}
-
-	NETDEBUG << "UDPServer fd:" << m_server_obj->fd() << ", bind address : " << address.toIpPort();
 
 	if (false == insertNetObj(m_server_obj))
 	{
@@ -532,8 +532,6 @@ bool Network::sendTo(InetAddress& address, const char* data, size_t size)
 	std::string message(data, size);
 
 	bool ret = m_server_obj->sendTo(address, data, size);
-
-	ret = m_server_obj->sendTo(address, data, size);
 
 	//¿ªÆô¼àÌýÐ´ÊÂ¼þ
 	ret = m_poll->enableWritePoll(m_server_obj, true);

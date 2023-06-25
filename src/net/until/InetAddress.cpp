@@ -76,7 +76,7 @@ bool InetAddress::resolve(std::string hostname, InetAddress* result)
 
 InetAddress::InetAddress(uint16_t port /*= 0*/, bool loopbackOnly /*= false*/, bool ipv6 /*= false*/)
 {
-	std::memset(&m_addr, 0, sizeof(m_addr));
+	std::memset(&m_addr6, 0, sizeof(m_addr6));
 
 	if (ipv6)
 	{
@@ -108,7 +108,7 @@ InetAddress::InetAddress(uint16_t port /*= 0*/, bool loopbackOnly /*= false*/, b
 
 InetAddress::InetAddress(std::string ip, uint16_t port, bool ipv6 /*= false*/)
 {
-	std::memset(&m_addr, 0, sizeof(m_addr));
+	std::memset(&m_addr6, 0, sizeof(m_addr6));
 	if (ipv6 || strchr(ip.c_str(), ':'))
 	{
 		m_addr6.sin6_family = AF_INET6;

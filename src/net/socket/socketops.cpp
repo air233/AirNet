@@ -174,10 +174,8 @@ int32_t getPeerAddr(SOCKET sockfd, sockaddr_storage& peeraddr)
 Linux:EMFILE
 Windows:WSAEMFILE
 */
-SOCKET acceptSocket(SOCKET sockfd, struct sockaddr* addr, int32_t& error)
+SOCKET acceptSocket(SOCKET sockfd, struct sockaddr* addr, int32_t addrlen, int32_t& error)
 {
-	socklen_t addrlen = static_cast<socklen_t>(sizeof * addr);
-
 	SOCKET connfd = ::accept(sockfd, addr, &addrlen);
 
 #ifdef _WIN32
@@ -204,11 +202,10 @@ SOCKET acceptSocket(SOCKET sockfd, struct sockaddr* addr, int32_t& error)
 	return connfd;
 }
 
-int32_t connectSocket(SOCKET sockfd, struct sockaddr* addr, int32_t& error)
+int32_t connectSocket(SOCKET sockfd, struct sockaddr* addr, int32_t addrlen, int32_t& error)
 {
 	error = 0;
 
-	socklen_t addrlen = static_cast<socklen_t>(sizeof * addr);
 	int ret = ::connect(sockfd, addr, addrlen);
 
 	if (ret < 0)
@@ -223,11 +220,10 @@ int32_t connectSocket(SOCKET sockfd, struct sockaddr* addr, int32_t& error)
 	return ret;
 }
 
-int32_t bindSocket(SOCKET sockfd, struct sockaddr* addr, int32_t& error)
+int32_t bindSocket(SOCKET sockfd, struct sockaddr* addr, int32_t addrlen, int32_t& error)
 {
 	error = 0;
 
-	socklen_t addrlen = static_cast<socklen_t>(sizeof * addr);
 	int ret = ::bind(sockfd, addr, addrlen);
 
 	if (ret < 0)

@@ -204,14 +204,12 @@ bool Poll::PostRecvFrom(std::shared_ptr<BaseNetObj> netObj)
 	ioUDPContext->NetID = netObj->getNetID();
 	ioUDPContext->Socket = netObj->fd();
 	ioUDPContext->DataBuf.buf = new char[MAX_UDP_BUFFER_SIZE];
-	//::memset(ioUDPContext->DataBuf.buf, 0, MAX_UDP_BUFFER_SIZE);
+	::memset(ioUDPContext->DataBuf.buf, 0, MAX_UDP_BUFFER_SIZE);
 	ioUDPContext->DataBuf.len = MAX_UDP_BUFFER_SIZE;
 	ioUDPContext->type = IOType::IORecvFrom;
 
 	DWORD flags = 0;
 	DWORD bytesReceived;
-
-	//sockaddr_storage addr;
 	int addr_len = sizeof sockaddr_storage;
 	int ret = WSARecvFrom(netObj->fd(), &ioUDPContext->DataBuf, 1, &bytesReceived, &flags, (sockaddr*)&ioUDPContext->addr, &addr_len, (LPOVERLAPPED)ioUDPContext, 0);
 	if (ret != 0)
@@ -225,10 +223,10 @@ bool Poll::PostRecvFrom(std::shared_ptr<BaseNetObj> netObj)
 			delete ioUDPContext;
 			return false;
 		}
-		m_network->NETDEBUG << "[IOCP]1 PostRecvFrom.";
+		//m_network->NETDEBUG << "[IOCP]1 PostRecvFrom.";
+
 		return true;
 	}
-
 	return true;
 }
 
@@ -301,7 +299,7 @@ bool Poll::PostSendTo(std::shared_ptr<BaseNetObj> netObj)
 		return true;
 	}
 	//std::cout << "[IOCP] PostSendTo.msg:" << msg.m_message << ", addr:" <<msg.m_addr.toIpPort() << std::endl;
-	ULONG len = msg.m_message.size();
+	size_t len = msg.m_message.size();
 
 	IO_UDP_CONTEXT* ioUDPContext = new IO_UDP_CONTEXT();
 	ioUDPContext->NetID = netObj->getNetID();
@@ -618,7 +616,7 @@ bool Poll::createPoll(Network* network)
 		m_threads.emplace_back(&Poll::WorkerThread,this);
 	}
 
-	m_network->NETDEBUG << "[IOCP] createIoCompletionPort succ. work thread count:" << numThreads;
+	m_network->NETDEBUG << "[IOCP] createIoCompletionPort success. work thread count:" << numThreads;
 	return true;
 }
 

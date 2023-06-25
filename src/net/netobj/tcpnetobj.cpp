@@ -59,7 +59,7 @@ bool TCPNetObj::bind(InetAddress& address)
 {
 	BaseNetObj::bind(address);
 
-	if (bindSocket(m_fd, address.getSockAddr(), m_error) < 0)
+	if (bindSocket(m_fd, address.getSockAddr(),address.getSockAddrLen(), m_error) < 0)
 	{
 		m_network->NETERROR << "TCP server bind fail. error:" << m_error;
 
@@ -93,7 +93,7 @@ bool TCPNetObj::connect(InetAddress& address, uint64_t outms)
 {
 	m_peerAddr = address;
 
-	if (connectSocket(m_fd, address.getSockAddr(), m_error) < 0)
+	if (connectSocket(m_fd, address.getSockAddr(), address.getSockAddrLen(), m_error) < 0)
 	{
 #ifdef _WIN32
 		if (m_error == WSAEWOULDBLOCK || m_error == WSAEALREADY)

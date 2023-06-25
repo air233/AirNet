@@ -185,12 +185,6 @@ void BaseNetObj::setNetStatus(uint32_t status)
 	m_net_state = status;
 }
 
-//SOCKET BaseNetObj::accept(int32_t& err)
-//{
-//	err = 0;
-//	return INVALID_SOCKET;
-//}
-
 void BaseNetObj::setlocalAddress(InetAddress& localAddr)
 {
 	m_localAddr = localAddr;

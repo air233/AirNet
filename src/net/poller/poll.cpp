@@ -78,8 +78,7 @@ void Poll::processJob()
 
 		case JobReveiveFrom:
 			ret = netObj->getMessage(msg);
-			if (ret == true)
-				m_network->m_onRecvFrom(msg.m_addr, msg.m_message);
+			if (ret) m_network->m_onRecvFrom(msg.m_addr, msg.m_message);
 			break;
 
 		case JobError:

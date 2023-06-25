@@ -55,14 +55,11 @@ public:
 
 	virtual uint8_t getIOType();
 
-	//virtual SOCKET accept(int32_t& err);
-
 	void setNetStatus(uint32_t status);
 	void setlocalAddress(InetAddress& localAddr);
 	void setpeerAddress(InetAddress& peerAddr);
 	void setNetwork(Network* network);
 protected:
-	
 	uint64_t m_net_id;
 	SOCKET m_fd;
 	int32_t m_error;
@@ -81,6 +78,5 @@ protected:
 	Buffer m_output_buf;
 
 	Network* m_network;
-
 };
 

@@ -39,7 +39,8 @@ class Poll
 public:
 	Poll():m_network(nullptr), m_run(true),
 #ifdef _WIN32
-		m_completionPort(nullptr)
+		m_completionPort(nullptr),
+		m_ConnectEx(nullptr)
 #else
 		m_epollFd(0)
 #endif

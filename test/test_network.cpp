@@ -102,20 +102,13 @@ int test_UDPServer()
 	MyServer server;
 	server.m_network = getNetwork(NetMode::UDP);
 
-	//回调函数
+	//收到消息回调函数
 	server.m_network->setRecvFromCallback(std::bind(&MyServer::ReceiveFrom, &server, std::placeholders::_1, std::placeholders::_2));
 	
 	//服务器启动
 	server.m_network->start();
-
-	//std::cout << "asynConnect:" << GetMSTimeStr() << std::endl;
-	//auto net_id = server.m_network->asynConnect("192.168.2.161", 1301, 5000);
-	//std::cout << "connect id :" << net_id << std::endl;
-
-	//TCPConfig config = { 0,0,0 };
-	//auto net_id2 = server.m_network->linstenTCP("0.0.0.0", 8888, config);
-	//std::cout << "listen id :" << net_id2 << std::endl;
 	
+	//绑定地址
 	server.m_network->bindUDP("0.0.0.0", 8888);
 
 	while (true)
