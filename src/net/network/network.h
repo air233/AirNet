@@ -50,8 +50,10 @@ public:
 	uint64_t connect(InetAddress& address, uint64_t timeout = 10000) override;
 	uint64_t connect(std::string ip, uint16_t port, uint64_t timeout = 10000) override;
 
-	/*发送数据*/
+	/*TCP发送数据*/
 	bool send(uint64_t net_id, const char* data, size_t size) override;
+
+	/*UDP发送数据*/
 	bool sendTo(InetAddress& address, const char* data, size_t size) override;
 
 	/*关闭连接*/

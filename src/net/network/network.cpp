@@ -506,23 +506,28 @@ uint64_t Network::asynConnect(std::string ip, uint16_t port, uint64_t timeout /*
 bool Network::send(uint64_t net_id, const char* data, size_t size)
 {
 	auto netObj = getNetObj2(net_id);
-
 	if (netObj == nullptr)
 	{
-		NETERROR << "invalid net id :" << net_id;
+		NETERROR << "send invalid net id :" << net_id;
 		return false;
 	}
-
+	
 	bool ret = netObj->send(data, size);
-
+	
 	if (ret == false)
 	{
 		m_onError(net_id, netObj->getError());
+		deleteNetObj(net_id);
 		return false; 
 	}
 
 	//开启监听写事件
 	ret = m_poll->enableWritePoll(netObj, true);
+
+	if (ret == false)
+	{
+		NETWARN << "send for enableWritePoll fail, net id :" << net_id;
+	}
 
 	return ret;
 }
@@ -536,6 +541,11 @@ bool Network::sendTo(InetAddress& address, const char* data, size_t size)
 	//开启监听写事件
 	ret = m_poll->enableWritePoll(m_server_obj, true);
 
+	if (ret == false)
+	{
+		NETWARN << "sendTo for enableWritePoll fail";
+	}
+
 	return ret;
 }
 
@@ -545,7 +555,7 @@ void Network::close(uint64_t net_id)
 
 	if (netObj == nullptr)
 	{
-		NETERROR << "invalid net id :" << net_id;
+		NETERROR << "close invalid net id :" << net_id;
 		return;
 	}
 
@@ -562,7 +572,7 @@ void Network::disconnect(uint64_t net_id)
 
 	if (netObj == nullptr)
 	{
-		NETERROR << "invalid net id :" << net_id;
+		NETERROR << "disconnect invalid net id :" << net_id;
 		return;
 	}
 

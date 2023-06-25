@@ -58,6 +58,7 @@ enum JobType
 };
 
 enum NetErrCode {
+	NET_BUFFER_TOO_LARGE = -9,
 	NET_OBJ_ERR = -8,
 	NET_TIMEOUT = -7,
 	NET_CONNECT_FAIL = -6,
@@ -71,7 +72,7 @@ enum NetErrCode {
 
 enum
 {
-	BuffMax = 5 * 1024 * 1024,/*5Mib*/
+	BuffMax = 10 * 1024 * 1024,/*5Mib*/
 };
 
 

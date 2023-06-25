@@ -175,12 +175,26 @@ bool TCPNetObj::send(const char* data, size_t len)
 	if (len > write_size)
 	{
 		std::lock_guard<std::mutex> mylockguard(m_input_mutex);
+		if (m_input_buf.size() > BuffMax)
+		{
+			m_error = NET_BUFFER_TOO_LARGE;
+			m_network->NETERROR << "TCP obj buffer accumulated data is too large.";
+			return false;
+		}
+
 		m_input_buf.pushCString(data + write_size, len - write_size);
 		haveWrite(true);
 	}
 	return true;
 #else
 	std::lock_guard<std::mutex> mylockguard(m_input_mutex);
+	if (m_input_buf.size() > BuffMax)
+	{
+		m_error = NET_BUFFER_TOO_LARGE;
+		m_network->NETERROR << "TCP obj buffer accumulated data is too large.";
+		return false;
+	}
+
 	m_input_buf.pushCString(data, len);
 
 	haveWrite(true);

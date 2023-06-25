@@ -109,7 +109,7 @@ void Poll::PostAcceptEvent(std::shared_ptr<BaseNetObj> listenNetObj)
 		if (GetLastError() != WSA_IO_PENDING)
 		{
 			delete ioContext;
-			m_network->NETERROR << "PostAccept AcceptEx Failed. Error: " << GetLastError();
+			//m_network->NETERROR << "PostAccept AcceptEx Failed. Error: " << GetLastError();
 		}
 	}
 }
@@ -119,7 +119,7 @@ bool Poll::PostConnectEvent(std::shared_ptr<BaseNetObj> netObj)
 	IO_CONTEXT* ioContext = new IO_CONTEXT();
 	ioContext->NetID = netObj->getNetID();
 	ioContext->Socket = netObj->fd();
-	//::memset(ioContext->Buffer, 0, MAX_BUFFER_SIZE);
+	::memset(ioContext->Buffer, 0, MAX_BUFFER_SIZE);
 	ioContext->DataBuf.buf = ioContext->Buffer;
 	ioContext->DataBuf.len = sizeof(ioContext->Buffer);
 	ioContext->type = IOType::IOConn;
@@ -131,7 +131,7 @@ bool Poll::PostConnectEvent(std::shared_ptr<BaseNetObj> netObj)
 	if (::bind(netObj->fd(), reinterpret_cast<sockaddr*>(&localAddr), sizeof(localAddr)) == SOCKET_ERROR)
 	{
 		int err = GetLastError();
-		m_network->NETERROR << "[IOCP] bind address fail: " << err;
+		//m_network->NETERROR << "[IOCP] bind address fail: " << err;
 		PostConnectJob(netObj, err);
 		return false;
 	}
@@ -143,7 +143,7 @@ bool Poll::PostConnectEvent(std::shared_ptr<BaseNetObj> netObj)
 		int err = GetLastError();
 		if (err != WSA_IO_PENDING)
 		{
-			m_network->NETERROR << "PostConnect Connect Failed. Error: " << err;
+			//m_network->NETERROR << "PostConnect Connect Failed. Error: " << err;
 			PostConnectJob(netObj, err);
 			delete ioContext;
 			return false;
@@ -172,7 +172,7 @@ bool Poll::PostRecv(std::shared_ptr<BaseNetObj> netObj)
 	IO_CONTEXT* ioContext = new IO_CONTEXT();
 	ioContext->NetID = netObj->getNetID();
 	ioContext->Socket = netObj->fd();
-	//::memset(ioContext->Buffer, 0, MAX_BUFFER_SIZE);
+	::memset(ioContext->Buffer, 0, MAX_BUFFER_SIZE);
 	ioContext->DataBuf.buf = ioContext->Buffer;
 	ioContext->DataBuf.len = sizeof(ioContext->Buffer);
 	ioContext->type = IOType::IORecv;
@@ -191,7 +191,7 @@ bool Poll::PostRecv(std::shared_ptr<BaseNetObj> netObj)
 			delete ioContext;
 			return false;
 		}
-		m_network->NETDEBUG << "[IOCP] PostRecv.";
+		//m_network->NETDEBUG << "[IOCP] PostRecv.";
 		return true;
 	}
 
@@ -266,7 +266,7 @@ bool Poll::PostSend(std::shared_ptr<BaseNetObj> netObj)
 	//memset(ioContext->Buffer, 0, MAX_BUFFER_SIZE);
 	::memcpy(ioContext->Buffer, sendData.c_str(), sendData.size());
 	ioContext->DataBuf.buf = ioContext->Buffer;
-	ioContext->DataBuf.len = sizeof(ioContext->Buffer);
+	ioContext->DataBuf.len = sendData.size();
 	ioContext->type = IOType::IOSend;
 
 	DWORD lpNumberOfBytesSent;
@@ -283,7 +283,7 @@ bool Poll::PostSend(std::shared_ptr<BaseNetObj> netObj)
 		}
 
 		//std::cout << "[IOCP] PostSend." << std::endl;
-		m_network->NETDEBUG << "[IOCP] PostSend.";
+		//m_network->NETDEBUG << "[IOCP] PostSend.";
 		return true;
 	}
 	return true;
@@ -295,7 +295,7 @@ bool Poll::PostSendTo(std::shared_ptr<BaseNetObj> netObj)
 	bool ret = netObj->getMessage(msg);
 	if (ret == false)
 	{
-		std::cout << "[IOCP] SendTo over." << std::endl;
+		//std::cout << "[IOCP] SendTo over." << std::endl;
 		return true;
 	}
 	//std::cout << "[IOCP] PostSendTo.msg:" << msg.m_message << ", addr:" <<msg.m_addr.toIpPort() << std::endl;
@@ -328,7 +328,7 @@ bool Poll::PostSendTo(std::shared_ptr<BaseNetObj> netObj)
 		}
 
 		//std::cout << "[IOCP] PostSendTo." << std::endl;
-		m_network->NETDEBUG << "[IOCP] PostSendTo.";
+		//m_network->NETDEBUG << "[IOCP] PostSendTo.";
 		return true;
 	}
 	return true;
@@ -355,8 +355,8 @@ void Poll::WorkerThread()
 		if (result == FALSE)
 		{
 			int32_t error = GetLastError();
-			m_network->NETWARN <<"Net id:" << ioContext->NetID << ": Failed to get completion status. Error: " << error;
-
+			//m_network->NETWARN <<"Net id:" << ioContext->NetID << ": Failed to get completion status. Error: " << error;
+			std::cerr << "Net id:" << ioContext->NetID << ": Failed to get completion status. Error: " << error << std::endl;
 			auto netObj = m_network->getNetObj2(ioContext->NetID);
 			if (netObj == nullptr)
 			{
@@ -378,8 +378,8 @@ void Poll::WorkerThread()
 			continue;
 		}
 
-		//std::cout << "[IOCP] WorkerThread1 process event:" << CIOType[(int)ioContext->type] << std::endl;
-		m_network->NETDEBUG << "[IOCP] WorkerThread1 process event:" << CIOType[(int)ioContext->type] << "," << (int)ioContext->type;
+		//std::cout << "[IOCP] WorkerThread1 process event:" << CIOType[(int)ioContext->type] << ":" << (int)ioContext->type << std::endl;
+		//m_network->NETDEBUG << "[IOCP] WorkerThread1 process event:" << CIOType[(int)ioContext->type] << ":" << (int)ioContext->type;
 
 		if (ioContext->type == IOType::IOAccept)
 		{
@@ -387,7 +387,7 @@ void Poll::WorkerThread()
 			{
 				//继续投递Accpet
 				PostAcceptEvent(m_network->getServerNetObj());
-				m_network->NETDEBUG << "[IOCP] TCP accept" << ioContext->NetID;
+				
 			
 				//================处理新连接客户端================
 				//clientSock关联listenSock
@@ -403,7 +403,8 @@ void Poll::WorkerThread()
 					delete ioContext;
 					continue;
 				}
-				
+				//m_network->NETDEBUG << "[IOCP] TCP accept:" << clientNetObj->getNetID();
+
 				//绑定地址信息
 				sockaddr_storage addr;
 				if (0 == getLocalAddr(ioContext->Socket, addr))
@@ -426,7 +427,7 @@ void Poll::WorkerThread()
 			auto netObj = m_network->getNetObj2(ioContext->NetID);
 			if (netObj == nullptr)
 			{
-				m_network->NETERROR << "[IOCP] recv not find net obj." << ioContext->NetID;
+				//m_network->NETERROR << "[IOCP] recv not find net obj." << ioContext->NetID;
 				delete ioContext;
 				continue;
 			}
@@ -434,7 +435,7 @@ void Poll::WorkerThread()
 			if (bytesTransferred == 0)
 			{
 				// 客户端关闭连接
-				m_network->NETDEBUG << "[IOCP] connections disconnect.";
+				//m_network->NETDEBUG << "[IOCP] recv connections disconnect.";
 				//std::cout << "[IOCP] connections disconnect:" << GetLastError() << std::endl;
 				PostDisConnectJob(netObj, GetLastError());
 				delete ioContext;
@@ -460,7 +461,7 @@ void Poll::WorkerThread()
 			int updateContext = 1;
 			if (::setsockopt(ioContext->Socket, SOL_SOCKET, SO_UPDATE_CONNECT_CONTEXT, reinterpret_cast<const char*>(&updateContext), sizeof(updateContext)) == SOCKET_ERROR)
 			{
-				m_network->NETDEBUG << "[IOCP] update connect context fail: " << GetLastError();
+				//m_network->NETDEBUG << "[IOCP] update connect context fail: " << GetLastError();
 				PostErrorJob(netObj, GetLastError());
 				delete ioContext;
 				continue;
@@ -480,14 +481,14 @@ void Poll::WorkerThread()
 			
 			//生成一个连接Job
 			PostConnectJob(netObj, NET_SUCCESS);
-			m_network->NETDEBUG << "[IOCP] async connect success. net id:" << ioContext->NetID;
+			//m_network->NETDEBUG << "[IOCP] async connect success. net id:" << ioContext->NetID;
 		}
 		else if (ioContext->type == IOType::IOSend )
 		{
 			auto netObj = m_network->getNetObj2(ioContext->NetID);
 			if (netObj == nullptr)
 			{
-				m_network->NETERROR << "[IOCP] send not find net obj." << ioContext->NetID;
+				//m_network->NETERROR << "[IOCP] send not find net obj." << ioContext->NetID;
 				delete ioContext;
 				continue;
 			}
@@ -502,7 +503,7 @@ void Poll::WorkerThread()
 			auto netObj = m_network->getNetObj2(ioUDPContext->NetID);
 			if (netObj == nullptr)
 			{
-				m_network->NETERROR << "[IOCP] recvfrom not find net obj." << ioUDPContext->NetID;
+				//m_network->NETERROR << "[IOCP] recvfrom not find net obj." << ioUDPContext->NetID;
 				delete ioUDPContext->DataBuf.buf;
 				delete ioUDPContext;
 				continue;
@@ -525,7 +526,7 @@ void Poll::WorkerThread()
 					delete ioUDPContext->DataBuf.buf;
 					delete ioUDPContext;
 				}
-				m_network->NETDEBUG << "[IOCP] PostRecvFrom.";
+				//m_network->NETDEBUG << "[IOCP] PostRecvFrom.";
 			}
 			continue;
 		}
@@ -536,7 +537,7 @@ void Poll::WorkerThread()
 			auto netObj = m_network->getNetObj2(ioUDPContext->NetID);
 			if (netObj == nullptr)
 			{
-				m_network->NETERROR << "[IOCP] sendto not find net obj." << ioUDPContext->NetID;
+				//m_network->NETERROR << "[IOCP] sendto not find net obj." << ioUDPContext->NetID;
 				delete ioUDPContext->DataBuf.buf;
 				delete ioUDPContext;
 				continue;
@@ -545,7 +546,7 @@ void Poll::WorkerThread()
 			auto udpNetObj = std::static_pointer_cast<UDPNetObj>(netObj);
 			if (netObj == nullptr)
 			{
-				m_network->NETERROR << "[IOCP] sendto not find net obj2." << ioContext->NetID;
+				//m_network->NETERROR << "[IOCP] sendto not find net obj2." << ioContext->NetID;
 				delete ioUDPContext->DataBuf.buf;
 				delete ioUDPContext;
 				continue;
@@ -555,7 +556,7 @@ void Poll::WorkerThread()
 			bool ret = udpNetObj->getMessage(msg);
 			if (ret == false)
 			{
-				m_network->NETDEBUG << "[IOCP] SendTo over." << std::endl;
+				//m_network->NETDEBUG << "[IOCP] SendTo over." << std::endl;
 				continue;
 			}
 			//::memset(ioUDPContext->DataBuf.buf, 0, MAX_BUFFER_SIZE);
@@ -579,7 +580,7 @@ void Poll::WorkerThread()
 					continue;
 				}
 				//std::cout << "[IOCP] PostSend." << std::endl;
-				m_network->NETDEBUG << "[IOCP] PostSendTo2.";
+				//m_network->NETDEBUG << "[IOCP] PostSendTo2.";
 			}
 			continue;
 		}
@@ -622,6 +623,8 @@ bool Poll::createPoll(Network* network)
 
 bool Poll::addPoll(std::shared_ptr<BaseNetObj> netObj)
 {
+	if (netObj == nullptr) return false;
+
 	//绑定完成端口
 	if (CreateIoCompletionPort(reinterpret_cast<HANDLE>(netObj->fd()), m_completionPort, 0, 0) == nullptr)
 	{
@@ -629,7 +632,7 @@ bool Poll::addPoll(std::shared_ptr<BaseNetObj> netObj)
 		return false;
 	}
 
-	m_network->NETDEBUG << "[IOCP] addPoll bind IoCompletionPort. net id: " << netObj->getNetID() << ", status:" << netObj->getNetStatus();
+	//m_network->NETDEBUG << "[IOCP] addPoll bind IoCompletionPort. net id: " << netObj->getNetID() << ", status:" << netObj->getNetStatus();
 
 	//处理异步连接
 	if (netObj->getNetStatus() == Connecting)

@@ -45,7 +45,7 @@ void MyServer::Receive(const uint64_t net_id, Buffer* buff)
 
 	buff->peekString(str, buff->size());
 
-	std::cout << net_id <<",size:" << str.size() << " recv:" << str << std::endl;
+	std::cout <<"net id:" << net_id << ", size:" << str.size() << ", recv:" << str << std::endl;
 
 	m_network->send(net_id, str.c_str(), str.size());
 }
@@ -78,13 +78,13 @@ int test_TCPServer()
 	//·þÎñÆ÷Æô¶¯
 	server.m_network->start();
 
-	std::cout << "asynConnect:" << GetMSTimeStr() << std::endl;
-	auto net_id = server.m_network->asynConnect("192.168.2.161", 1301, 5000);
-	std::cout << "connect id :" << net_id << std::endl;
+	//std::cout << "asynConnect:" << GetMSTimeStr() << std::endl;
+	//auto net_id = server.m_network->asynConnect("192.168.2.161", 1301, 5000);
+	//std::cout << "connect id :" << net_id << std::endl;
 
 	TCPConfig config = { 0,0,0 };
 	auto net_id2 = server.m_network->linstenTCP("0.0.0.0", 8888, config);
-	std::cout << "listen id :" << net_id2 << std::endl;
+	/*std::cout << "listen id :" << net_id2 << std::endl;*/
 
 	while (true)
 	{

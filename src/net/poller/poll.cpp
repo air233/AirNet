@@ -27,8 +27,6 @@ void Poll::processJob()
 		std::lock_guard<std::mutex> lockguard(m_mutex);
 		net_jobs.swap(m_net_jobs);
 	}
-	
-	Message msg;
 
 	while (!net_jobs.empty())
 	{
@@ -47,16 +45,15 @@ void Poll::processJob()
 
 		int ret = 0;
 
-		switch (job->m_type)
+		if (job->m_type == JobNewConn)
 		{
-		case JobNewConn:
 			m_network->m_onNewConnect(job->m_net_id);
-			
+
 			//开启监听读事件
 			enableReadPoll(netObj, true);
-			break;
-
-		case JobConnect:
+		}
+		else if (job->m_type == JobConnect)
+		{
 			/*netid,连接错误码 0为成功*/
 			m_network->m_onConnect(job->m_net_id, job->m_error);
 
@@ -64,31 +61,45 @@ void Poll::processJob()
 			{
 				m_network->deleteNetObj(job->m_net_id);
 			}
-
-			break;
-
-		case JobDisconnect:
+		}
+		else if (job->m_type == JobDisconnect)
+		{
 			m_network->m_onDisconnect(job->m_net_id);
+
 			m_network->deleteNetObj(job->m_net_id);
-			break;
+		}
+		else if (job->m_type == JobReveive)
+		{
+			Buffer tempBuff;
+			{
+				/*取出buffer数据*/
+				std::lock_guard<std::mutex> lock(netObj->outputMutex());
+				tempBuff.append(*netObj->outputBuffer());
+			}
 
-		case JobReveive:
-			m_network->m_onRecv(job->m_net_id, netObj->outputBuffer());
-			break;
+			/*处理数据*/
+			m_network->m_onRecv(job->m_net_id, &tempBuff);
 
-		case JobReveiveFrom:
+			{
+				/*将未使用数据放回*/
+				std::lock_guard<std::mutex> lock(netObj->outputMutex());
+				netObj->outputBuffer()->insert(tempBuff.begin(), tempBuff.size());
+			}
+		}
+		else if (job->m_type == JobReveiveFrom)
+		{
+			Message msg;
 			ret = netObj->getMessage(msg);
 			if (ret) m_network->m_onRecvFrom(msg.m_addr, msg.m_message);
-			break;
-
-		case JobError:
+		}
+		else if (job->m_type == JobError)
+		{
 			m_network->m_onError(job->m_net_id, job->m_error);
 			m_network->deleteNetObj(job->m_net_id);
-			break;
-
-		default:
+		}
+		else
+		{
 			m_network->NETDEBUG << "net job not type. net id:" << job->m_net_id<<", type:"<< job->m_type;
-			break;
 		}
 	}
 }
