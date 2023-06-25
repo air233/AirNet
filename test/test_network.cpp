@@ -20,8 +20,6 @@ public:
 	void ReceiveFrom(InetAddress& addr, std::string& message);
 };
 
-
-
 void MyServer::ConnectCallback(const uint64_t net_id, int32_t error)
 {
 	std::cout << net_id << " connect result:" << error << ", time:" << GetMSTimeStr() << std::endl;
@@ -33,7 +31,7 @@ void MyServer::ConnectCallback(const uint64_t net_id, int32_t error)
 		std::cout << "connect success. local addr:" << netObj->localAddress().toIpPort() << ". peer addr:" << netObj->peerAddress().toIpPort() << std::endl;
 	}
 
-	//m_network->send(net_id, "hello", 5);
+	m_network->send(net_id, "hello", 5);
 }
 
 void MyServer::Disconnected(const uint64_t net_id)
@@ -54,16 +52,16 @@ void MyServer::Receive(const uint64_t net_id, Buffer* buff)
 
 void MyServer::NewConnectCallback(const uint64_t net_id)
 {
-	std::cout << "AccpetID:" << net_id << std::endl;
+	std::cout << "NewConnect net id:" << net_id << std::endl;
 
 	m_network->send(net_id, "hello", 5);
 }
 
 void MyServer::ReceiveFrom(InetAddress& addr, std::string& message)
 {
-	std::cout << "ReceiveFrom:" << addr.toIpPort() << "msg:" << message << std::endl;
+	std::cout << "ReceiveFrom:" << addr.toIpPort() << ", msg:" << message << std::endl;
 
-	m_network->sendTo(addr, message.c_str(),message.size());
+	m_network->sendTo(addr, "hello client",12);
 }
 
 int test_TCPServer()
@@ -105,11 +103,8 @@ int test_UDPServer()
 	server.m_network = getNetwork(NetMode::UDP);
 
 	//回调函数
-	server.m_network->setConnectCallback(std::bind(&MyServer::ConnectCallback, &server, std::placeholders::_1, std::placeholders::_2));
-	server.m_network->setDisConnectCallback(std::bind(&MyServer::Disconnected, &server, std::placeholders::_1));
-	server.m_network->setRecvCallback(std::bind(&MyServer::Receive, &server, std::placeholders::_1, std::placeholders::_2));
-	server.m_network->setNewConnectCallback(std::bind(&MyServer::NewConnectCallback, &server, std::placeholders::_1));
 	server.m_network->setRecvFromCallback(std::bind(&MyServer::ReceiveFrom, &server, std::placeholders::_1, std::placeholders::_2));
+	
 	//服务器启动
 	server.m_network->start();
 
@@ -123,17 +118,14 @@ int test_UDPServer()
 	
 	server.m_network->bindUDP("0.0.0.0", 8888);
 
-
-
 	while (true)
 	{
 		server.m_network->update();
 
-		Sleep(100);
+		Sleep(10);
 	}
 
 	server.m_network->stop();
-	return 0;
 
 	return 0;
 }

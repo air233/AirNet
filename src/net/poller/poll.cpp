@@ -157,11 +157,10 @@ void Poll::PostRecvJob(std::shared_ptr<BaseNetObj> netObj, char* buff, int len)
 void Poll::PostRecvFromJob(std::shared_ptr<BaseNetObj> netObj, InetAddress& addr, char* buff, int len)
 {
 	auto udpNetObj = std::static_pointer_cast<UDPNetObj>(netObj);
-
 	if (udpNetObj == nullptr) return;
 
 	Message recvMsg;
-	recvMsg.m_addr = InetAddress(addr);
+	recvMsg.m_addr = addr;
 	recvMsg.m_message.assign(buff, buff+len);
 	udpNetObj->pushMessage(recvMsg);
 
@@ -172,7 +171,7 @@ void Poll::PostRecvFromJob(std::shared_ptr<BaseNetObj> netObj, InetAddress& addr
 	pushJob(job);
 }
 
-void Poll::pushJob(std::shared_ptr<NetJob> job)
+void Poll::pushJob(std::shared_ptr<NetJob>& job)
 {
 	std::lock_guard<std::mutex> lockguard(m_mutex);
 	m_net_jobs.push(job);

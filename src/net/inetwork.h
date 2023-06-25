@@ -93,8 +93,6 @@ public:
 	/*服务器开启监听*/
 	virtual uint64_t linstenTCP(InetAddress& address, TCPServerConfig& config) = 0;
 	virtual uint64_t linstenTCP(std::string ip, uint16_t port, TCPServerConfig& config) = 0;
-	//virtual uint64_t linsten(InetAddress& address) = 0;
-	//virtual uint64_t linsten(std::string ip, uint16_t port) = 0;
 
 	virtual uint64_t bindUDP(InetAddress& address) = 0;
 	virtual uint64_t bindUDP(std::string ip, uint16_t port) = 0;
@@ -134,12 +132,12 @@ public:
 	virtual int getNetMode() = 0;
 
 	/*设置回调函数*/
-	void setNewConnectCallback(NewConnectCallback callback) { m_onNewConnect = callback; }
-	void setConnectCallback(ConnectCallback callback) { m_onConnect = callback; }
-	void setDisConnectCallback(DisConnectCallback callback) { m_onDisconnect = callback; }
-	void setRecvCallback(ReceiveCallback callback) { m_onRecv = callback; }
-	void setRecvFromCallback(ReceiveFromCallback callback) { m_onRecvFrom = callback; }
-	void setErrorCallback(ErrorCallback callback) { m_onError = callback; }
+	void setNewConnectCallback(NewConnectCallback callback);
+	void setConnectCallback(ConnectCallback callback);
+	void setDisConnectCallback(DisConnectCallback callback);
+	void setRecvCallback(ReceiveCallback callback);
+	void setRecvFromCallback(ReceiveFromCallback callback);
+	void setErrorCallback(ErrorCallback callback);
 
 public:
 	NewConnectCallback m_onNewConnect;

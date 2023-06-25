@@ -59,11 +59,9 @@ public:
 	int32_t waitPoll();
 	void workPoll();
 
-	void pushJob(std::shared_ptr<NetJob> job);
-
+	void pushJob(std::shared_ptr<NetJob>& job);
 	//主线程处理函数
 	void processJob();
-
 private:
 	Network* m_network;
 	bool m_run;

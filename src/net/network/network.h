@@ -38,8 +38,6 @@ public:
 	/*监听函数*/
 	uint64_t linstenTCP(InetAddress& address, TCPServerConfig& config) override;
 	uint64_t linstenTCP(std::string ip, uint16_t port, TCPServerConfig& config) override;
-	//uint64_t linsten(InetAddress& address) override;
-	//uint64_t linsten(std::string ip, uint16_t port) override;
 
 	uint64_t bindUDP(InetAddress& address) override;
 	uint64_t bindUDP(std::string ip, uint16_t port) override;
@@ -80,7 +78,7 @@ public:
 	/*处理异步连接超时(主线程)*/
 	void processAsynConnectTimeOut();
 
-	/*增删改查*/
+	/*NetObj增删改查*/
 	std::shared_ptr<BaseNetObj> makeNetObj(Network* network, sa_family_t family);
 	std::shared_ptr<BaseNetObj> makeNetObj(Network* network, SOCKET sock);
 	std::shared_ptr<BaseNetObj> getNetObj2(uint64_t net_id);
@@ -103,8 +101,9 @@ private:
 	std::shared_mutex m_net_mutex;
 	std::unordered_map<uint64_t, std::shared_ptr<BaseNetObj>> m_net_objs;
 	
-	/*网络对象*/
+	/*网络监听对象*/
 	std::shared_ptr<BaseNetObj> m_server_obj;
+	uint64_t m_server_net_id;
 	
 	/*网络事件处理器*/
 	std::shared_ptr<Poll> m_poll;

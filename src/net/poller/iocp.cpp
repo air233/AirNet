@@ -9,7 +9,7 @@
 #include <functional>
 #include <iostream>
 
-const int MAX_ACCPET_SIZE = 511;
+const int MAX_WORK_SIZE = 511;
 constexpr int MAX_BUFFER_SIZE = 1024;
 constexpr int MAX_UDP_BUFFER_SIZE = 65536;
 
@@ -53,6 +53,7 @@ struct IO_UDP_CONTEXT
 	SOCKET Socket;
 	uint64_t NetID;
 	WSABUF DataBuf;
+	sockaddr_storage addr;
 };
 
 bool Poll::LoadConnectEx()
@@ -92,7 +93,7 @@ void Poll::PostAcceptEvent(std::shared_ptr<BaseNetObj> listenNetObj)
 	IO_CONTEXT* ioContext = new IO_CONTEXT();
 	ioContext->NetID = 0;
 	ioContext->Socket = clientSock;
-	memset(ioContext->Buffer, 0, MAX_BUFFER_SIZE);
+	//::memset(ioContext->Buffer, 0, MAX_BUFFER_SIZE);
 	ioContext->DataBuf.buf = ioContext->Buffer;
 	ioContext->DataBuf.len = sizeof(ioContext->Buffer);
 	ioContext->type = IOType::IOAccept;
@@ -118,14 +119,14 @@ bool Poll::PostConnectEvent(std::shared_ptr<BaseNetObj> netObj)
 	IO_CONTEXT* ioContext = new IO_CONTEXT();
 	ioContext->NetID = netObj->getNetID();
 	ioContext->Socket = netObj->fd();
-	memset(ioContext->Buffer, 0, MAX_BUFFER_SIZE);
+	//::memset(ioContext->Buffer, 0, MAX_BUFFER_SIZE);
 	ioContext->DataBuf.buf = ioContext->Buffer;
 	ioContext->DataBuf.len = sizeof(ioContext->Buffer);
 	ioContext->type = IOType::IOConn;
 
 	// 绑定本地地址和端口
 	sockaddr_storage localAddr;
-	memset(&localAddr, 0, sizeof localAddr);
+	::memset(&localAddr, 0, sizeof localAddr);
 	localAddr.ss_family = netObj->peerAddress().family();
 	if (::bind(netObj->fd(), reinterpret_cast<sockaddr*>(&localAddr), sizeof(localAddr)) == SOCKET_ERROR)
 	{
@@ -171,7 +172,7 @@ bool Poll::PostRecv(std::shared_ptr<BaseNetObj> netObj)
 	IO_CONTEXT* ioContext = new IO_CONTEXT();
 	ioContext->NetID = netObj->getNetID();
 	ioContext->Socket = netObj->fd();
-	memset(ioContext->Buffer, 0, MAX_BUFFER_SIZE);
+	//::memset(ioContext->Buffer, 0, MAX_BUFFER_SIZE);
 	ioContext->DataBuf.buf = ioContext->Buffer;
 	ioContext->DataBuf.len = sizeof(ioContext->Buffer);
 	ioContext->type = IOType::IORecv;
@@ -203,20 +204,16 @@ bool Poll::PostRecvFrom(std::shared_ptr<BaseNetObj> netObj)
 	ioUDPContext->NetID = netObj->getNetID();
 	ioUDPContext->Socket = netObj->fd();
 	ioUDPContext->DataBuf.buf = new char[MAX_UDP_BUFFER_SIZE];
-	memset(ioUDPContext->DataBuf.buf, 0, MAX_UDP_BUFFER_SIZE);
+	//::memset(ioUDPContext->DataBuf.buf, 0, MAX_UDP_BUFFER_SIZE);
 	ioUDPContext->DataBuf.len = MAX_UDP_BUFFER_SIZE;
 	ioUDPContext->type = IOType::IORecvFrom;
 
 	DWORD flags = 0;
 	DWORD bytesReceived;
 
-	sockaddr_storage addr;
+	//sockaddr_storage addr;
 	int addr_len = sizeof sockaddr_storage;
-
-	int ret = WSARecvFrom(netObj->fd(), &ioUDPContext->DataBuf, 1, &bytesReceived, &flags, (sockaddr*)&addr, &addr_len, (LPOVERLAPPED)ioUDPContext, 0);
-	InetAddress inetAddr(addr);
-	m_network->NETDEBUG << "[IOCP] PostRecvFrom addr:" << inetAddr.toIpPort();
-	
+	int ret = WSARecvFrom(netObj->fd(), &ioUDPContext->DataBuf, 1, &bytesReceived, &flags, (sockaddr*)&ioUDPContext->addr, &addr_len, (LPOVERLAPPED)ioUDPContext, 0);
 	if (ret != 0)
 	{
 		int32_t err = GetLastError();
@@ -268,8 +265,8 @@ bool Poll::PostSend(std::shared_ptr<BaseNetObj> netObj)
 	IO_CONTEXT* ioContext = new IO_CONTEXT();
 	ioContext->NetID = netObj->getNetID();
 	ioContext->Socket = netObj->fd();
-	memset(ioContext->Buffer, 0, MAX_BUFFER_SIZE);
-	memcpy(ioContext->Buffer, sendData.c_str(), sendData.size());
+	//memset(ioContext->Buffer, 0, MAX_BUFFER_SIZE);
+	::memcpy(ioContext->Buffer, sendData.c_str(), sendData.size());
 	ioContext->DataBuf.buf = ioContext->Buffer;
 	ioContext->DataBuf.len = sizeof(ioContext->Buffer);
 	ioContext->type = IOType::IOSend;
@@ -303,20 +300,21 @@ bool Poll::PostSendTo(std::shared_ptr<BaseNetObj> netObj)
 		std::cout << "[IOCP] SendTo over." << std::endl;
 		return true;
 	}
-	std::cout << "[IOCP] PostSendTo.msg:" << msg.m_message << std::endl;
+	//std::cout << "[IOCP] PostSendTo.msg:" << msg.m_message << ", addr:" <<msg.m_addr.toIpPort() << std::endl;
+	ULONG len = msg.m_message.size();
 
 	IO_UDP_CONTEXT* ioUDPContext = new IO_UDP_CONTEXT();
 	ioUDPContext->NetID = netObj->getNetID();
 	ioUDPContext->Socket = netObj->fd();
 	ioUDPContext->DataBuf.buf = new char[MAX_UDP_BUFFER_SIZE];
-	memset(ioUDPContext->DataBuf.buf, 0, MAX_BUFFER_SIZE);
-	memcpy(ioUDPContext->DataBuf.buf, msg.m_message.c_str(), msg.m_message.size());
-	ioUDPContext->DataBuf.len = MAX_UDP_BUFFER_SIZE;
+	::memset(ioUDPContext->DataBuf.buf, 0, MAX_BUFFER_SIZE);
+	::memcpy(ioUDPContext->DataBuf.buf, msg.m_message.c_str(), len);
+	ioUDPContext->DataBuf.len = len;
 	ioUDPContext->type = IOType::IOSendTo;
 
 	DWORD lpNumberOfBytesSent;
-	sockaddr* addr = netObj->peerAddress().getSockAddr();
-	int addr_len = netObj->peerAddress().getSockAddrLen();
+	sockaddr* addr = msg.m_addr.getSockAddr();
+	int addr_len = msg.m_addr.getSockAddrLen();
 
 	int sendret = WSASendTo(netObj->fd(), &ioUDPContext->DataBuf, 1, &lpNumberOfBytesSent, 0, addr, addr_len,(LPOVERLAPPED)ioUDPContext, 0);
 	if (sendret != 0)
@@ -331,8 +329,8 @@ bool Poll::PostSendTo(std::shared_ptr<BaseNetObj> netObj)
 			return false;
 		}
 
-		std::cout << "[IOCP] PostSendTo." << std::endl;
-		//m_network->NETDEBUG << "[IOCP] PostSendTo.";
+		//std::cout << "[IOCP] PostSendTo." << std::endl;
+		m_network->NETDEBUG << "[IOCP] PostSendTo.";
 		return true;
 	}
 	return true;
@@ -396,7 +394,7 @@ void Poll::WorkerThread()
 				//================处理新连接客户端================
 				//clientSock关联listenSock
 				SOCKET listenSocket = m_network->getServerNetObj()->fd();
-				setsockopt(ioContext->Socket, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT, (char*)&listenSocket, sizeof SOCKET);
+				::setsockopt(ioContext->Socket, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT, (char*)&listenSocket, sizeof SOCKET);
 				
 				//生成一个client NetObj
 				auto clientNetObj = m_network->makeNetObj(m_network, ioContext->Socket);
@@ -462,7 +460,7 @@ void Poll::WorkerThread()
 			}
 
 			int updateContext = 1;
-			if (setsockopt(ioContext->Socket, SOL_SOCKET, SO_UPDATE_CONNECT_CONTEXT, reinterpret_cast<const char*>(&updateContext), sizeof(updateContext)) == SOCKET_ERROR)
+			if (::setsockopt(ioContext->Socket, SOL_SOCKET, SO_UPDATE_CONNECT_CONTEXT, reinterpret_cast<const char*>(&updateContext), sizeof(updateContext)) == SOCKET_ERROR)
 			{
 				m_network->NETDEBUG << "[IOCP] update connect context fail: " << GetLastError();
 				PostErrorJob(netObj, GetLastError());
@@ -486,7 +484,6 @@ void Poll::WorkerThread()
 			PostConnectJob(netObj, NET_SUCCESS);
 			m_network->NETDEBUG << "[IOCP] async connect success. net id:" << ioContext->NetID;
 		}
-
 		else if (ioContext->type == IOType::IOSend )
 		{
 			auto netObj = m_network->getNetObj2(ioContext->NetID);
@@ -513,22 +510,13 @@ void Poll::WorkerThread()
 				continue;
 			}
 
-			sockaddr_storage addr;
-			getPeerAddr(ioUDPContext->Socket, addr);
-			InetAddress inetAddr(addr);
-			m_network->NETERROR << "[IOCP] recvfrom addr:" << inetAddr.toIpPort();
-
 			//投递一个RecvFrom事件
-			PostRecvFromJob(netObj,InetAddress(addr), ioUDPContext->DataBuf.buf,bytesTransferred);
+			PostRecvFromJob(netObj, InetAddress(ioUDPContext->addr), ioUDPContext->DataBuf.buf, bytesTransferred);
 
-			//继续接收消息
-			ioUDPContext->type = IOType::IORecvFrom;
-			::memset(ioUDPContext->DataBuf.buf, 0, MAX_UDP_BUFFER_SIZE);
-			ioUDPContext->DataBuf.len = MAX_UDP_BUFFER_SIZE;
 			DWORD flags = 0;
 			DWORD bytesReceived;
 			int addr_len = sizeof sockaddr_storage;
-			int ret = WSARecvFrom(netObj->fd(), &ioUDPContext->DataBuf, 1, &bytesReceived, &flags, (sockaddr*)&addr, &addr_len, (LPOVERLAPPED)ioContext, 0);
+			int ret = WSARecvFrom(netObj->fd(), &ioUDPContext->DataBuf, 1, &bytesReceived, &flags, (sockaddr*)&ioUDPContext->addr, &addr_len, (LPOVERLAPPED)ioUDPContext, 0);
 			if (ret != 0)
 			{
 				int32_t err = GetLastError();
@@ -569,15 +557,16 @@ void Poll::WorkerThread()
 			bool ret = udpNetObj->getMessage(msg);
 			if (ret == false)
 			{
-				std::cout << "[IOCP] SendTo over2." << std::endl;
+				m_network->NETDEBUG << "[IOCP] SendTo over." << std::endl;
 				continue;
 			}
-			memset(ioUDPContext->DataBuf.buf, 0, MAX_BUFFER_SIZE);
-			memcpy(ioUDPContext->DataBuf.buf, msg.m_message.c_str(), msg.m_message.size());
+			//::memset(ioUDPContext->DataBuf.buf, 0, MAX_BUFFER_SIZE);
+			::memcpy(ioUDPContext->DataBuf.buf, msg.m_message.c_str(), msg.m_message.size());
+			ioUDPContext->DataBuf.len = msg.m_message.size();
 
 			DWORD lpNumberOfBytesSent;
-			sockaddr* addr = netObj->peerAddress().getSockAddr();
-			int addr_len = netObj->peerAddress().getSockAddrLen();
+			sockaddr* addr = msg.m_addr.getSockAddr();
+			int addr_len = msg.m_addr.getSockAddrLen();
 
 			int retSend = WSASendTo(netObj->fd(), &ioUDPContext->DataBuf, 1, &lpNumberOfBytesSent, 0, addr, addr_len, (LPOVERLAPPED)ioContext, 0);
 			if (retSend != 0)
@@ -596,6 +585,7 @@ void Poll::WorkerThread()
 			}
 			continue;
 		}
+
 		delete ioContext;
 	}
 }
@@ -655,17 +645,21 @@ bool Poll::addPoll(std::shared_ptr<BaseNetObj> netObj)
 		if (netObj->isListen())
 		{
 			//预先生成 投递AccpetEx事件
-			for (int i = 0; i < MAX_ACCPET_SIZE; i++)
+			for (int i = 0; i < MAX_WORK_SIZE; i++)
 			{
 				PostAcceptEvent(netObj);
 			}
-
 			return true;
 		}
 	}
 	else if (netObj->getNetMode() == (int)NetMode::UDP)
 	{
-		return PostRecvEvent(netObj);
+		for (int i = 0; i < MAX_WORK_SIZE; i++)
+		{
+			//预先生成 投递RecvFrom事件
+			PostRecvFrom(netObj);
+		}
+		return true;
 	}
 	 
 	return true;
@@ -680,6 +674,7 @@ int32_t Poll::waitPoll()
 {
 	return 1;
 }
+
 bool Poll::enableReadPoll(std::shared_ptr<BaseNetObj> netObj, bool enable)
 {
 	if (netObj == nullptr)

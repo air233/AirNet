@@ -25,7 +25,8 @@ Network::Network(NetMode mode):
 	m_log("./log/network/","network"),
 	m_idle_fd(-1),
 	m_ssl(0),
-	m_epoll_et(0)
+	m_epoll_et(0),
+	m_server_net_id(INVALID_NET_ID)
 {
 	
 }
@@ -189,7 +190,9 @@ uint64_t Network::linstenTCP(InetAddress& address, TCPServerConfig& config)
 
 	NETDEBUG << "listen fd:" << m_server_obj->fd() << ", linstenTCP ip : " << address.toIpPort();
 
-	return m_server_obj->getNetID();
+	m_server_net_id = m_server_obj->getNetID();
+
+	return m_server_net_id;
 }
 
 uint64_t Network::linstenTCP(std::string ip, uint16_t port, TCPServerConfig& config)
@@ -310,7 +313,9 @@ void Network::removeNetObj(uint64_t net_id)
 void Network::deleteNetObj(uint64_t net_id)
 {
 	auto netObj = getNetObj2(net_id);
+
 	if (netObj == nullptr) return;
+
 	NETDEBUG << "delete net obj. id:" << net_id;
 	
 	netObj->close();/*网络对象关闭*/
@@ -318,6 +323,11 @@ void Network::deleteNetObj(uint64_t net_id)
 	m_poll->delPoll(netObj);
 
 	removeNetObj(net_id);
+
+	if (m_server_net_id == net_id)
+	{
+		NETWARN << "SERVER CORE CLOSE!";
+	}
 }
 
 void Network::asyncConnectResult(uint64_t net_id, int32_t err)
@@ -401,45 +411,6 @@ void Network::processAsynConnectTimeOut()
 	}
 }
 
-//uint64_t Network::linsten(InetAddress& address)
-//{
-//	if (m_server_obj != nullptr)
-//	{
-//		return INVALID_NET_ID;
-//	}
-//
-//	sa_family_t family = address.family();
-//
-//	m_server_obj = makeNetObj(this, family);
-//
-//	if (false == m_server_obj->bind(address))
-//	{
-//		return INVALID_NET_ID;
-//	}
-//
-//	if (false == m_server_obj->listen())
-//	{
-//		return INVALID_NET_ID;
-//	}
-//
-//	if (false == insertNetObj(m_server_obj))
-//	{
-//		auto netObj = getNetObj2(m_server_obj->getNetID());
-//		if (netObj) netObj->close();
-//
-//		return INVALID_NET_ID;
-//	}
-//
-//	return m_server_obj->getNetID();
-//}
-//
-//uint64_t Network::linsten(std::string ip, uint16_t port)
-//{
-//	InetAddress address(ip, port);
-//
-//	return linsten(address);
-//}
-
 uint64_t Network::connect(InetAddress& address, uint64_t timeout)
 {
 	auto connect_obj = makeNetObj(this, address.family());
@@ -489,7 +460,9 @@ uint64_t Network::bindUDP(InetAddress& address)
 		return INVALID_NET_ID;
 	}
 
-	return m_server_obj->getNetID();
+	m_server_net_id = m_server_obj->getNetID();
+		
+	return m_server_net_id;
 }
 
 uint64_t Network::bindUDP(std::string ip, uint16_t port)
@@ -560,9 +533,10 @@ bool Network::sendTo(InetAddress& address, const char* data, size_t size)
 
 	bool ret = m_server_obj->sendTo(address, data, size);
 
+	ret = m_server_obj->sendTo(address, data, size);
+
 	//开启监听写事件
 	ret = m_poll->enableWritePoll(m_server_obj, true);
-
 
 	return ret;
 }
