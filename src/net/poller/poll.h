@@ -8,12 +8,14 @@
 #include <mutex>
 #include <map>
 #include <thread>
+#include <vector>
 
 #ifdef _WIN32
 #include <Windows.h>
 #include <MSWSock.h>
-class IO_CONTEXT;
 #else
+struct epoll_event;
+
 #endif
 
 /*
@@ -58,7 +60,6 @@ public:
 	bool enableWritePoll(std::shared_ptr<BaseNetObj> netObj, bool enable);
 
 	int32_t waitPoll();
-	void workPoll();
 
 	void pushJob(std::shared_ptr<NetJob>& job);
 	//主线程处理函数
@@ -82,7 +83,7 @@ private:
 #ifdef _WIN32
 	HANDLE m_completionPort;
 	LPFN_CONNECTEX m_ConnectEx;
-	
+
 	void WorkerThread();
 
 	bool LoadConnectEx();
@@ -90,13 +91,13 @@ private:
 	bool PostConnectEvent(std::shared_ptr<BaseNetObj> netObj);
 	bool PostRecvEvent(std::shared_ptr<BaseNetObj> netObj);
 	bool PostSendEvent(std::shared_ptr<BaseNetObj> netObj);
-
 	bool PostRecv(std::shared_ptr<BaseNetObj> netObj);
 	bool PostRecvFrom(std::shared_ptr<BaseNetObj> netObj);
 	bool PostSend(std::shared_ptr<BaseNetObj> netObj);
 	bool PostSendTo(std::shared_ptr<BaseNetObj> netObj);
 #else
 	int m_epollFd;
+	std::vector<struct epoll_event> m_events;
 #endif
 };
 

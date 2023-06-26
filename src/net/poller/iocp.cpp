@@ -305,7 +305,7 @@ bool Poll::PostSendTo(std::shared_ptr<BaseNetObj> netObj)
 	ioUDPContext->NetID = netObj->getNetID();
 	ioUDPContext->Socket = netObj->fd();
 	ioUDPContext->DataBuf.buf = new char[MAX_UDP_BUFFER_SIZE];
-	::memset(ioUDPContext->DataBuf.buf, 0, MAX_BUFFER_SIZE);
+	//::memset(ioUDPContext->DataBuf.buf, 0, MAX_BUFFER_SIZE);
 	::memcpy(ioUDPContext->DataBuf.buf, msg.m_message.c_str(), len);
 	ioUDPContext->DataBuf.len = len;
 	ioUDPContext->type = IOType::IOSendTo;
@@ -360,7 +360,7 @@ void Poll::WorkerThread()
 			auto netObj = m_network->getNetObj2(ioContext->NetID);
 			if (netObj == nullptr)
 			{
-				m_network->NETWARN << "[IOCP] recv not find net obj." << ioContext->NetID;
+				//m_network->NETWARN << "[IOCP] recv not find net obj." << ioContext->NetID;
 				delete ioContext;
 				continue;
 			}

@@ -80,6 +80,7 @@ void Poll::processJob()
 			/*处理数据*/
 			m_network->m_onRecv(job->m_net_id, &tempBuff);
 
+			if(tempBuff.size() != 0)
 			{
 				/*将未使用数据放回*/
 				std::lock_guard<std::mutex> lock(netObj->outputMutex());
@@ -90,12 +91,20 @@ void Poll::processJob()
 		{
 			Message msg;
 			ret = netObj->getMessage(msg);
-			if (ret) m_network->m_onRecvFrom(msg.m_addr, msg.m_message);
+
+			if (ret)
+			{
+				m_network->m_onRecvFrom(msg.m_addr, msg.m_message);
+			}
 		}
 		else if (job->m_type == JobError)
 		{
 			m_network->m_onError(job->m_net_id, job->m_error);
-			m_network->deleteNetObj(job->m_net_id);
+
+			if (m_network->getNetMode() == (int)NetMode::TCP)
+			{
+				m_network->deleteNetObj(job->m_net_id);
+			}
 		}
 		else
 		{

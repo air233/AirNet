@@ -11,7 +11,7 @@ void defaultNewConnectCallback(uint64_t net_id)
 
 void defaultConnectCallback(uint64_t net_id, int32_t errcode)
 {
-	LOG_DEBUG << "connected socket : " << net_id << ". err:" << errcode;
+	LOG_DEBUG << "connected socket : " << net_id << ", error code:" << errcode;
 }
 
 void defaultDisConnectCallback(uint64_t net_id)
@@ -33,7 +33,7 @@ void defaultReceiveFromCallback(InetAddress& addr, std::string& message)
 
 void defaultErrorCallback(uint64_t net_id, int32_t error_id)
 {
-	LOG_DEBUG << "Error. net id : " << net_id << ", err:" << error_id;
+	LOG_DEBUG << "Error. net id : " << net_id << ", error code:" << error_id;
 }
 
 void INetWrok::setNewConnectCallback(NewConnectCallback callback)

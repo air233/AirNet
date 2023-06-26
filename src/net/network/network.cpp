@@ -534,8 +534,6 @@ bool Network::send(uint64_t net_id, const char* data, size_t size)
 
 bool Network::sendTo(InetAddress& address, const char* data, size_t size)
 {
-	std::string message(data, size);
-
 	bool ret = m_server_obj->sendTo(address, data, size);
 
 	//¿ªÆô¼àÌıĞ´ÊÂ¼ş
