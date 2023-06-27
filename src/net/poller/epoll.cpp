@@ -13,9 +13,16 @@ bool createPoll(Network* network)
 	
 	m_events.resize(16);
 
-	m_epollFd = ::epoll_create1(0);
+	m_epollFd = ::epoll_create1(EPOLL_CLOEXEC);
 
-	return m_epollFd != -1;
+	if (m_epollFd < 0)
+	{
+		m_network->NETWARN << "[EPOLL] create EPOLL FD fail.";
+
+		return false;
+	}
+
+	//创建work线程
 }
 
 void destoryPoll()
@@ -28,13 +35,35 @@ void destoryPoll()
 
 	::close(m_epollFd);
 
-	m_network->NETWARN << "[IOCP] destoryPoll.";
+	m_network->NETWARN << "[EPOLL] destoryPoll.";
 }
 
 bool addPoll(std::shared_ptr<BaseNetObj> netObj)
 {
 	if (netObj == nullptr) return false;
 
+	epoll_event et;
+	et.data.u64 = netObj->getNetID();
+
+	if (netObj->getNetStatus() == Connecting)
+	{
+		et.events = EPOLLOUT;
+
+		
+	}
+
+	if (netObj->getNetMode() == (int)NetMode::TCP)
+	{
+		//只有TCP需要Listen
+		if (netObj->isListen())
+		{
+			
+		}
+	}
+	else if (netObj->getNetMode() == (int)NetMode::UDP)
+	{
+		
+	}
 }
 
 void delPoll(std::shared_ptr<BaseNetObj> netObj)
