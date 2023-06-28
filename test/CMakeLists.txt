@@ -6,6 +6,8 @@ set(LIB_DIR "../3rd/lib")
 set(COMMON_DIR "../src/common/")
 set(NET_DIR "../src/net/")
 #get_filename_component(PARENT_DIR ${CMAKE_CURRENT_SOURCE_DIR} DIRECTORY)
+set(LINUX_DIR "C:/Users/99466/AppData/Local/Microsoft/Linux/HeaderCache/1.0/973402692/usr/include/")
+set(LINUX2_DIR "C:/Users/99466/AppData/Local/Microsoft/Linux/HeaderCache/1.0/973402692/usr/local/include/")
 
 include_directories(
 ${CMAKE_CURRENT_SOURCE_DIR} 
@@ -18,7 +20,6 @@ ${NET_DIR}
 #link_directories(${LIB_DIR}/googletest/lib)
 
 add_executable(network_test
-
 "${COMMON_DIR}/until/encoding.cpp"
 "${COMMON_DIR}/until/times.cpp"
 "${COMMON_DIR}/log/log.cpp"
@@ -34,7 +35,8 @@ add_executable(network_test
 "${NET_DIR}/netobj/udpnetobj.cpp"
 "${NET_DIR}/until/inetAddress.cpp"
 "${NET_DIR}/inetwork.cpp"
-
+"${LINUX_DIR}"
+"${LINUX2_DIR}"
 #"${PARENT_DIR}/inetAddress.cpp"
 #"${COMMON_DIR}/until/encoding.cpp" 
 #"${COMMON_DIR}/until/times.cpp" 

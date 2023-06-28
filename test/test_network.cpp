@@ -2,6 +2,8 @@
 #include "../net/inetwork.h"
 #ifdef _WIN32
 #include <windows.h>
+#else
+#include <unistd.h>
 #endif // _WIN32
 #include <functional>
 #include "../common/until/times.h"
@@ -78,19 +80,19 @@ int test_TCPServer()
 	//·þÎñÆ÷Æô¶¯
 	server.m_network->start();
 
-	//std::cout << "asynConnect:" << GetMSTimeStr() << std::endl;
-	//auto net_id = server.m_network->asynConnect("192.168.2.161", 1301, 5000);
-	//std::cout << "connect id :" << net_id << std::endl;
+	std::cout << "asynConnect:" << GetMSTimeStr() << std::endl;
+	auto net_id = server.m_network->asynConnect("192.168.2.161", 1301, 5000);
+	std::cout << "connect id :" << net_id << std::endl;
 
-	TCPConfig config = { 0,0,0 };
+	TCPConfig config;
 	auto net_id2 = server.m_network->linstenTCP("0.0.0.0", 8888, config);
-	/*std::cout << "listen id :" << net_id2 << std::endl;*/
+	std::cout << "listen id :" << net_id2 << std::endl;
 
 	while (true)
 	{
 		server.m_network->update();
 
-		Sleep(100);
+		Wait(10);
 	}
 
 	server.m_network->stop();
@@ -115,7 +117,7 @@ int test_UDPServer()
 	{
 		server.m_network->update();
 
-		Sleep(10);
+		Wait(10);
 	}
 
 	server.m_network->stop();
@@ -157,9 +159,9 @@ int test_getNetID()
 
 int main()
 {
-	//test_TCPServer();
+	test_TCPServer();
 
-	test_UDPServer();
+	//test_UDPServer();
 
 	return 0;
 }

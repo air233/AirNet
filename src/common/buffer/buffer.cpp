@@ -2,6 +2,7 @@
 #include <assert.h>
 #include "../until/encoding.h"
 #include <iostream>
+#include <string.h>
 
 Buffer::Buffer(size_t init_size) :
     m_buffer(init_size),
@@ -171,7 +172,7 @@ size_t Buffer::peekCString(char* data, size_t size)
 {
    std::string str = get(size);
 
-   memcpy(data, str.c_str(), str.size());
+   ::memcpy(data, str.c_str(), str.size());
 
    return str.size();
 }
@@ -226,7 +227,7 @@ void Buffer::makeSpace(size_t len)
     else
     {
         size_t readable = readableSize();
-        memcpy(begin(), begin() + m_read_index, readable);
+        ::memcpy(begin(), begin() + m_read_index, readable);
         m_read_index = 0;
         m_write_index = readable;
     }
@@ -246,7 +247,7 @@ void Buffer::push(const void* data, size_t size)
 {
     ensureWritableSize(size);
     
-    memcpy(begin() + m_write_index, data, size);
+    ::memcpy(begin() + m_write_index, data, size);
 
     m_write_index += size;
 }
@@ -255,7 +256,7 @@ void Buffer::insert(const void* data, size_t size)
 {
     if (m_read_index >= size)
     {
-        memcpy(begin() + m_read_index - size, data, size);
+        ::memcpy(begin() + m_read_index - size, data, size);
         m_read_index -= size;
     }
     else

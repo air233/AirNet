@@ -140,6 +140,13 @@ bool UDPNetObj::getMessage(Message& msg)
 	return true;
 }
 
+size_t UDPNetObj::getMessageSize()
+{
+	std::lock_guard<std::mutex> lock(m_msg_mutex);
+
+	return m_messageQueue.size();
+}
+
 void UDPNetObj::pushMessage(Message& msg)
 {
 	std::lock_guard<std::mutex> lock(m_msg_mutex);

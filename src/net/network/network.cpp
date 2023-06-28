@@ -25,7 +25,6 @@ Network::Network(NetMode mode):
 	m_log("./log/network/","network"),
 	m_idle_fd(-1),
 	m_ssl(0),
-	m_epoll_et(0),
 	m_server_net_id(INVALID_NET_ID)
 {
 	
@@ -183,14 +182,14 @@ uint64_t Network::linstenTCP(InetAddress& address, TCPServerConfig& config)
 		return INVALID_NET_ID;
 	}
 
+	m_server_net_id = m_server_obj->getNetID();
+
 	if (false == insertNetObj(m_server_obj))
 	{
 		return INVALID_NET_ID;
 	}
 
 	NETDEBUG << "listen fd:" << m_server_obj->fd() << ", linstenTCP ip : " << address.toIpPort();
-
-	m_server_net_id = m_server_obj->getNetID();
 
 	return m_server_net_id;
 }
@@ -288,18 +287,19 @@ std::shared_ptr<BaseNetObj> Network::getServerNetObj()
 
 bool Network::insertNetObj(std::shared_ptr<BaseNetObj> netObj, bool addPoll)
 {
+	std::unique_lock<std::shared_mutex> lock(m_net_mutex);
+	auto iter = m_net_objs.insert(std::make_pair(netObj->getNetID(), netObj));
+
 	if (addPoll == true )
 	{
 		//将IO事件加入Poll层
 		if (false == m_poll->addPoll(netObj))
 		{
+			m_net_objs.erase(netObj->getNetID());
 			NETERROR << "insert net obj fail." << netObj->getNetID();
 			return false;
 		}
 	}
-
-	std::unique_lock<std::shared_mutex> lock(m_net_mutex);
-	auto iter = m_net_objs.insert(std::make_pair(netObj->getNetID(), netObj));
 
 	return iter.second;
 }
@@ -318,9 +318,9 @@ void Network::deleteNetObj(uint64_t net_id)
 
 	NETDEBUG << "delete net obj. id:" << net_id;
 	
-	netObj->close();/*网络对象关闭*/
-	
 	m_poll->delPoll(netObj);
+
+	netObj->close();/*网络对象关闭*/
 
 	removeNetObj(net_id);
 
@@ -417,15 +417,18 @@ uint64_t Network::connect(InetAddress& address, uint64_t timeout)
 
 	if (false == connect_obj->connect(address, timeout))
 	{
+		NETDEBUG << "connect fail. peer addr:" << address.toIpPort();
 		return INVALID_NET_ID;
 	}
 
-	if (insertNetObj(connect_obj) == false)
+	if (insertNetObj(connect_obj,false) == false)
 	{
 		NETERROR << "net obj insert fail. net id:" << connect_obj->getNetID();
 
 		return INVALID_NET_ID;
 	}
+
+	NETDEBUG << "connect success. peer addr:" << address.toIpPort();
 
 	return connect_obj->getNetID();
 }
@@ -455,12 +458,12 @@ uint64_t Network::bindUDP(InetAddress& address)
 		return INVALID_NET_ID;
 	}
 
+	m_server_net_id = m_server_obj->getNetID();
+
 	if (false == insertNetObj(m_server_obj))
 	{
 		return INVALID_NET_ID;
 	}
-
-	m_server_net_id = m_server_obj->getNetID();
 		
 	return m_server_net_id;
 }
@@ -476,22 +479,30 @@ uint64_t Network::asynConnect(InetAddress& address, uint64_t timeout)
 {
 	auto connect_obj = makeNetObj(this, address.family());
 	
-	if(connect_obj->asynConnect(address,timeout) == false)
-	{
-		return INVALID_NET_ID;
-	}
-
-	if (insertNetObj(connect_obj) == false)
-	{
-		NETERROR << "net obj insert fail. net id:" << connect_obj->getNetID();
-		return INVALID_NET_ID;
-	}
-
 	ConnectInfo stConnectInfo;
 	stConnectInfo.m_net_id = connect_obj->getNetID();
 	stConnectInfo.m_timeout = GetMSTime() + timeout;
 	m_connecting.insert(std::make_pair(connect_obj->getNetID(), stConnectInfo));
 	//NETDEBUG << "asynConnect time out:" << GetMSTimeStr(stConnectInfo.m_timeout);
+
+	if(connect_obj->asynConnect(address,timeout) == false)
+	{
+		return INVALID_NET_ID;
+	}
+
+	bool add_poll = true;
+
+	if (connect_obj->getNetStatus() == Connected)
+	{
+		m_poll->PostConnectJob(connect_obj,NET_SUCCESS);
+		add_poll = false;
+	}
+
+	if (insertNetObj(connect_obj,add_poll) == false)
+	{
+		NETERROR << "net obj insert fail. net id:" << connect_obj->getNetID();
+		return INVALID_NET_ID;
+	}
 
 	return connect_obj->getNetID();
 }
@@ -558,7 +569,7 @@ void Network::close(uint64_t net_id)
 	}
 
 	/*回调断开连接 此时还能拿到对象*/
-	m_onDisconnect(net_id);
+	//m_onDisconnect(net_id);
 
 	/*释放netobj 对象消失*/
 	deleteNetObj(net_id);

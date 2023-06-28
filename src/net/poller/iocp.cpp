@@ -3,7 +3,7 @@
 #ifdef _WIN32
 #include "../network/network.h"
 #include "../socket/socketops.h"
-#include "../until/InetAddress.h"
+#include "../until/inetAddress.h"
 #include "../netobj/udpnetobj.h"
 #include "../../common/buffer/buffer.h"
 #include <functional>
@@ -81,7 +81,7 @@ bool Poll::LoadConnectEx()
 	return TRUE;
 }
 
-void Poll::PostAcceptEvent(std::shared_ptr<BaseNetObj> listenNetObj)
+void Poll::PostAcceptEvent(std::shared_ptr<BaseNetObj>& listenNetObj)
 {
 	SOCKET clientSock = createTCPSocket(listenNetObj->localAddress().family());
 	if (clientSock == INVALID_SOCKET)
@@ -114,7 +114,7 @@ void Poll::PostAcceptEvent(std::shared_ptr<BaseNetObj> listenNetObj)
 	}
 }
 
-bool Poll::PostConnectEvent(std::shared_ptr<BaseNetObj> netObj)
+bool Poll::PostConnectEvent(std::shared_ptr<BaseNetObj>& netObj)
 {
 	IO_CONTEXT* ioContext = new IO_CONTEXT();
 	ioContext->NetID = netObj->getNetID();
@@ -153,7 +153,7 @@ bool Poll::PostConnectEvent(std::shared_ptr<BaseNetObj> netObj)
 	return true;
 }
 
-bool Poll::PostRecvEvent(std::shared_ptr<BaseNetObj> netObj)
+bool Poll::PostRecvEvent(std::shared_ptr<BaseNetObj>& netObj)
 {
 	if (netObj->getNetMode() == (int)NetMode::TCP)
 	{
@@ -167,7 +167,7 @@ bool Poll::PostRecvEvent(std::shared_ptr<BaseNetObj> netObj)
 	return false;
 }
 
-bool Poll::PostRecv(std::shared_ptr<BaseNetObj> netObj)
+bool Poll::PostRecv(std::shared_ptr<BaseNetObj>& netObj)
 {
 	IO_CONTEXT* ioContext = new IO_CONTEXT();
 	ioContext->NetID = netObj->getNetID();
@@ -198,7 +198,7 @@ bool Poll::PostRecv(std::shared_ptr<BaseNetObj> netObj)
 	return true;
 }
 
-bool Poll::PostRecvFrom(std::shared_ptr<BaseNetObj> netObj)
+bool Poll::PostRecvFrom(std::shared_ptr<BaseNetObj>& netObj)
 {
 	IO_UDP_CONTEXT* ioUDPContext = new IO_UDP_CONTEXT();
 	ioUDPContext->NetID = netObj->getNetID();
@@ -230,7 +230,7 @@ bool Poll::PostRecvFrom(std::shared_ptr<BaseNetObj> netObj)
 	return true;
 }
 
-bool Poll::PostSendEvent(std::shared_ptr<BaseNetObj> netObj)
+bool Poll::PostSendEvent(std::shared_ptr<BaseNetObj>& netObj)
 {
 	if (netObj->getNetMode() == (int)NetMode::TCP)
 	{
@@ -244,7 +244,7 @@ bool Poll::PostSendEvent(std::shared_ptr<BaseNetObj> netObj)
 	return false;
 }
 
-bool Poll::PostSend(std::shared_ptr<BaseNetObj> netObj)
+bool Poll::PostSend(std::shared_ptr<BaseNetObj>& netObj)
 {
 	std::string sendData;
 	{
@@ -289,7 +289,7 @@ bool Poll::PostSend(std::shared_ptr<BaseNetObj> netObj)
 	return true;
 }
 
-bool Poll::PostSendTo(std::shared_ptr<BaseNetObj> netObj)
+bool Poll::PostSendTo(std::shared_ptr<BaseNetObj>& netObj)
 {
 	Message msg;
 	bool ret = netObj->getMessage(msg);
@@ -621,7 +621,7 @@ bool Poll::createPoll(Network* network)
 	return true;
 }
 
-bool Poll::addPoll(std::shared_ptr<BaseNetObj> netObj)
+bool Poll::addPoll(std::shared_ptr<BaseNetObj>& netObj)
 {
 	if (netObj == nullptr) return false;
 
@@ -666,7 +666,7 @@ bool Poll::addPoll(std::shared_ptr<BaseNetObj> netObj)
 	return true;
 }
 
-void Poll::delPoll(std::shared_ptr<BaseNetObj> netObj)
+void Poll::delPoll(std::shared_ptr<BaseNetObj>& netObj)
 {
 	(void)netObj;
 }
@@ -676,7 +676,7 @@ int32_t Poll::waitPoll()
 	return 1;
 }
 
-bool Poll::enableReadPoll(std::shared_ptr<BaseNetObj> netObj, bool enable)
+bool Poll::enableReadPoll(std::shared_ptr<BaseNetObj>& netObj, bool enable)
 {
 	if (netObj == nullptr)
 	{
@@ -693,7 +693,7 @@ bool Poll::enableReadPoll(std::shared_ptr<BaseNetObj> netObj, bool enable)
 	return ret;
 }
 
-bool Poll::enableWritePoll(std::shared_ptr<BaseNetObj> netObj, bool enable)
+bool Poll::enableWritePoll(std::shared_ptr<BaseNetObj>& netObj, bool enable)
 {
 	if (netObj == nullptr)
 	{

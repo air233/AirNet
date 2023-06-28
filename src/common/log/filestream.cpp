@@ -2,7 +2,6 @@
 #include "../until/times.h"
 #include<assert.h>
 #include <iostream>
-#include <filesystem>
 
 #define FILESIZE 1024
 
@@ -55,21 +54,21 @@ std::string FileStream::getLogFileName(const std::string& basename, uint8_t mode
 
 	*now = GetTime();
 
-	std::tm tm;
-	localtime_s(&tm, now);
+	std::tm* tm;
+	tm = localtime(now);
 
 	char timebuf[32] = { 0 };
 	if (mode == HOUR)
 	{
-		std::strftime(timebuf, sizeof(timebuf), "%Y_%m_%d_%H", &tm);
+		std::strftime(timebuf, sizeof(timebuf), "%Y_%m_%d_%H", tm);
 	}
 	else if(mode == DAY)
 	{
-		std::strftime(timebuf, sizeof(timebuf), "%Y_%m_%d", &tm);
+		std::strftime(timebuf, sizeof(timebuf), "%Y_%m_%d", tm);
 	}
 	else
 	{
-		std::strftime(timebuf, sizeof(timebuf), "%Y_%m_%d_%H_%M", &tm);
+		std::strftime(timebuf, sizeof(timebuf), "%Y_%m_%d_%H_%M", tm);
 	}
 
 	filename = filename + "_" + timebuf;

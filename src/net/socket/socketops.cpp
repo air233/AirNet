@@ -176,7 +176,7 @@ Windows:WSAEMFILE
 */
 SOCKET acceptSocket(SOCKET sockfd, struct sockaddr* addr, int32_t addrlen, int32_t& error)
 {
-	SOCKET connfd = ::accept(sockfd, addr, &addrlen);
+	SOCKET connfd = ::accept(sockfd, addr, (socklen_t*)&addrlen);
 
 #ifdef _WIN32
 	if (connfd == INVALID_SOCKET)
@@ -337,11 +337,23 @@ ssize_t writeSocket(SOCKET sockfd, const void* buf, size_t count, int32_t& error
 ssize_t readSocket(SOCKET sockfd, void* buf, size_t count, int32_t& error)
 {
 	error = 0;
+	ssize_t size = 0;
+
 #ifdef _WIN32
-	return ::recv(sockfd, (char*)buf, count, 0);
+	size = ::recv(sockfd, (char*)buf, count, 0);
+
+	if (size < 0)
+	{
+		error = WSAGetLastError();
+	}
 #else
-	return ::read(sockfd, buf, count);
+	size = ::read(sockfd, buf, count);
+	if (size < 0)
+	{
+		error = errno;
+	}
 #endif
+	return size;
 }
 
 ssize_t writeToSocket(SOCKET sockfd, const void* buf, size_t count, const struct sockaddr* dest_addr, socklen_t addrlen, int32_t& error)

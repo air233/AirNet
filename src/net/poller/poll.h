@@ -1,7 +1,7 @@
 #pragma once
 #include "../nettype.h"
 #include "../netobj/basenetobj.h"
-#include "../until/InetAddress.h"
+#include "../until/inetAddress.h"
 
 #include <memory>
 #include <queue>
@@ -14,8 +14,7 @@
 #include <Windows.h>
 #include <MSWSock.h>
 #else
-struct epoll_event;
-
+#include <sys/epoll.h>
 #endif
 
 /*
@@ -53,17 +52,25 @@ public:
 	bool createPoll(Network* network);
 	void destoryPoll();
 
-	bool addPoll(std::shared_ptr<BaseNetObj> netObj);
-	void delPoll(std::shared_ptr<BaseNetObj> netObj);
+	bool addPoll(std::shared_ptr<BaseNetObj>& netObj);
+	void delPoll(std::shared_ptr<BaseNetObj>& netObj);
 
-	bool enableReadPoll(std::shared_ptr<BaseNetObj> netObj, bool enable);
-	bool enableWritePoll(std::shared_ptr<BaseNetObj> netObj, bool enable);
+	bool enableReadPoll(std::shared_ptr<BaseNetObj>& netObj, bool enable);
+	bool enableWritePoll(std::shared_ptr<BaseNetObj>& netObj, bool enable);
 
 	int32_t waitPoll();
 
 	void pushJob(std::shared_ptr<NetJob>& job);
 	//主线程处理函数
 	void processJob();
+
+	void PostNewConnectJob(std::shared_ptr<BaseNetObj>& netObj);
+	void PostConnectJob(std::shared_ptr<BaseNetObj>& netObj, int err);
+	void PostErrorJob(std::shared_ptr<BaseNetObj>& netObj, int err);
+	void PostDisConnectJob(std::shared_ptr<BaseNetObj>& netObj, int err);
+	void PostRecvJob(std::shared_ptr<BaseNetObj>& netObj, char* buff, int len);
+	void PostRecvFromJob(std::shared_ptr<BaseNetObj>& netObj, InetAddress& addr, char* buff, int len);
+
 private:
 	Network* m_network;
 	bool m_run;
@@ -73,31 +80,28 @@ private:
 	std::queue<std::shared_ptr<NetJob>> m_net_jobs;
 
 	std::vector<std::thread> m_threads;
-
-	void PostNewConnectJob(std::shared_ptr<BaseNetObj> netObj);
-	void PostConnectJob(std::shared_ptr<BaseNetObj> netObj, int err);
-	void PostErrorJob(std::shared_ptr<BaseNetObj> netObj, int err);
-	void PostDisConnectJob(std::shared_ptr<BaseNetObj> netObj, int err);
-	void PostRecvJob(std::shared_ptr<BaseNetObj> netObj,char* buff,int len);
-	void PostRecvFromJob(std::shared_ptr<BaseNetObj> netObj,InetAddress& addr, char* buff, int len);
 #ifdef _WIN32
 	HANDLE m_completionPort;
 	LPFN_CONNECTEX m_ConnectEx;
-
 	void WorkerThread();
-
 	bool LoadConnectEx();
-	void PostAcceptEvent(std::shared_ptr<BaseNetObj> netObj);
-	bool PostConnectEvent(std::shared_ptr<BaseNetObj> netObj);
-	bool PostRecvEvent(std::shared_ptr<BaseNetObj> netObj);
-	bool PostSendEvent(std::shared_ptr<BaseNetObj> netObj);
-	bool PostRecv(std::shared_ptr<BaseNetObj> netObj);
-	bool PostRecvFrom(std::shared_ptr<BaseNetObj> netObj);
-	bool PostSend(std::shared_ptr<BaseNetObj> netObj);
-	bool PostSendTo(std::shared_ptr<BaseNetObj> netObj);
+	void PostAcceptEvent(std::shared_ptr<BaseNetObj>& netObj);
+	bool PostConnectEvent(std::shared_ptr<BaseNetObj>& netObj);
+	bool PostRecvEvent(std::shared_ptr<BaseNetObj>& netObj);
+	bool PostSendEvent(std::shared_ptr<BaseNetObj>& netObj);
+	bool PostRecv(std::shared_ptr<BaseNetObj>& netObj);
+	bool PostRecvFrom(std::shared_ptr<BaseNetObj>& netObj);
+	bool PostSend(std::shared_ptr<BaseNetObj>& netObj);
+	bool PostSendTo(std::shared_ptr<BaseNetObj>& netObj);
 #else
 	int m_epollFd;
+	int m_pipefd[2];
 	std::vector<struct epoll_event> m_events;
+	bool processEvent(std::vector<struct epoll_event>& events, int size);
+	bool processAcceptEvent(std::shared_ptr<BaseNetObj>& netObj);
+	bool processConnectEvent(std::shared_ptr<BaseNetObj>& netObj);
+	bool processReadEvent(std::shared_ptr<BaseNetObj>& netObj);
+	bool processWriteEvent(std::shared_ptr<BaseNetObj>& netObj);
 #endif
 };
 

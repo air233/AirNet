@@ -16,7 +16,7 @@
 #include <atomic>
 
 #define NETDEBUG getLog().Debug()
-#define NETINFO  getLog().Error()
+#define NETINFO  getLog().Info()
 #define NETWARN  getLog().Warn()
 #define NETERROR getLog().Error()
 #define NETFATAL getLog().Fatal()
@@ -118,5 +118,4 @@ private:
 
 	/*¥˝Õÿ’π…Ë÷√*/
 	uint8_t m_ssl;
-	uint8_t m_epoll_et;
 };

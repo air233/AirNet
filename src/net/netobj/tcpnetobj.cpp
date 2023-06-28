@@ -4,6 +4,7 @@
 #include <winsock2.h>
 #else
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <sys/socket.h>
 #endif
 #include "../network/network.h"
@@ -83,9 +84,6 @@ bool TCPNetObj::listen()
 
 	m_net_state = Listening;
 
-	//关注可读
-	haveRead(true);
-
 	return true;
 }
 
@@ -128,7 +126,7 @@ bool TCPNetObj::asynConnect(InetAddress& address, uint64_t outms)
 	m_peerAddr = address;
 
 #ifndef _WIN32
-	if (connectSocket(m_fd, address.getSockAddr(), m_error) < 0)
+	if (connectSocket(m_fd, address.getSockAddr(), address.getSockAddrLen(), m_error) < 0)
 	{
 		if (m_error == EINPROGRESS || m_error == EWOULDBLOCK || m_error == EAGAIN)
 		{
@@ -196,8 +194,6 @@ bool TCPNetObj::send(const char* data, size_t len)
 	}
 
 	m_input_buf.pushCString(data, len);
-
-	haveWrite(true);
 
 	//直接写入IOCP
 	return true;

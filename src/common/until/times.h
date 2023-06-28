@@ -16,3 +16,4 @@ uint32_t GetWeekDay(uint32_t time);
 bool IsSameDay(uint32_t time1, uint32_t time2);
 bool IsSameHour(uint32_t time1, uint32_t time2);
 
+void Wait(uint32_t milliseconds);

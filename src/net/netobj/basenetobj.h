@@ -48,12 +48,7 @@ public:
 	virtual bool isListen();
 	virtual bool close();
 	virtual bool getMessage(Message& msg);
-
-	void haveRead(bool enable);
-	void haveWrite(bool enable);
-	void haveAll(bool enable);
-
-	virtual uint8_t getIOType();
+	virtual size_t getMessageSize();
 
 	void setNetStatus(uint32_t status);
 	void setlocalAddress(InetAddress& localAddr);
@@ -66,7 +61,6 @@ protected:
 	int32_t m_net_mode;
 	uint32_t m_net_state;
 	uint8_t m_listen;
-	uint8_t m_io_type;
 
 	InetAddress m_localAddr;
 	InetAddress m_peerAddr;

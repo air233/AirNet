@@ -54,19 +54,25 @@ void Poll::processJob()
 		}
 		else if (job->m_type == JobConnect)
 		{
-			/*netid,连接错误码 0为成功*/
-			m_network->m_onConnect(job->m_net_id, job->m_error);
-
 			if (job->m_error != NET_SUCCESS)
 			{
 				m_network->deleteNetObj(job->m_net_id);
 			}
+
+			/*net id,连接错误码 0为成功*/
+			m_network->m_onConnect(job->m_net_id, job->m_error);
+
+			if (job->m_error == NET_SUCCESS)
+			{
+				enableReadPoll(netObj, true);
+			}
 		}
 		else if (job->m_type == JobDisconnect)
 		{
+			m_network->deleteNetObj(job->m_net_id);
+
 			m_network->m_onDisconnect(job->m_net_id);
 
-			m_network->deleteNetObj(job->m_net_id);
 		}
 		else if (job->m_type == JobReveive)
 		{
@@ -74,7 +80,7 @@ void Poll::processJob()
 			{
 				/*取出buffer数据*/
 				std::lock_guard<std::mutex> lock(netObj->outputMutex());
-				tempBuff.append(*netObj->outputBuffer());
+				tempBuff.swap(*netObj->outputBuffer());
 			}
 
 			/*处理数据*/
@@ -113,7 +119,7 @@ void Poll::processJob()
 	}
 }
 
-void Poll::PostNewConnectJob(std::shared_ptr<BaseNetObj> netObj)
+void Poll::PostNewConnectJob(std::shared_ptr<BaseNetObj>& netObj)
 {
 	netObj->setNetStatus(Connected);
 
@@ -123,11 +129,15 @@ void Poll::PostNewConnectJob(std::shared_ptr<BaseNetObj> netObj)
 	pushJob(job);
 }
 
-void Poll::PostConnectJob(std::shared_ptr<BaseNetObj> netObj, int err)
+void Poll::PostConnectJob(std::shared_ptr<BaseNetObj>& netObj, int err)
 {
 	if (err == NET_SUCCESS)
 	{
 		netObj->setNetStatus(Connected);
+	}
+	else
+	{
+		delPoll(netObj);
 	}
 
 	//通知结果
@@ -140,25 +150,29 @@ void Poll::PostConnectJob(std::shared_ptr<BaseNetObj> netObj, int err)
 	pushJob(job);
 }
 
-void Poll::PostErrorJob(std::shared_ptr<BaseNetObj> netObj, int err)
+void Poll::PostErrorJob(std::shared_ptr<BaseNetObj>& netObj, int err)
 {
 	std::shared_ptr<NetJob> job = std::make_shared<NetJob>();
 	job->m_type = JobError;
 	job->m_net_id = netObj->getNetID();
 	job->m_error = err;
 	pushJob(job);
+
+	delPoll(netObj);
 }
 
-void Poll::PostDisConnectJob(std::shared_ptr<BaseNetObj> netObj, int err)
+void Poll::PostDisConnectJob(std::shared_ptr<BaseNetObj>& netObj, int err)
 {
 	std::shared_ptr<NetJob> job = std::make_shared<NetJob>();
 	job->m_type = JobDisconnect;
 	job->m_net_id = netObj->getNetID();
 	job->m_error = err;
 	pushJob(job);
+
+	delPoll(netObj);
 }
 
-void Poll::PostRecvJob(std::shared_ptr<BaseNetObj> netObj, char* buff, int len)
+void Poll::PostRecvJob(std::shared_ptr<BaseNetObj>& netObj, char* buff, int len)
 {
 	{
 		//放入output buffer
@@ -173,7 +187,7 @@ void Poll::PostRecvJob(std::shared_ptr<BaseNetObj> netObj, char* buff, int len)
 	pushJob(job);
 }
 
-void Poll::PostRecvFromJob(std::shared_ptr<BaseNetObj> netObj, InetAddress& addr, char* buff, int len)
+void Poll::PostRecvFromJob(std::shared_ptr<BaseNetObj>& netObj, InetAddress& addr, char* buff, int len)
 {
 	auto udpNetObj = std::static_pointer_cast<UDPNetObj>(netObj);
 	if (udpNetObj == nullptr) return;

@@ -26,6 +26,11 @@ typedef struct TCPConfig
 	bool reuse;
 	bool keepalive;
 	bool lingerzero;
+
+	TCPConfig() :delay(0), reuse(1), keepalive(1), lingerzero(0) 
+	{
+
+	}
 }TCPServerConfig;
 
 enum class NetMode : int
