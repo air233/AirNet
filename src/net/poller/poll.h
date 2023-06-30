@@ -102,6 +102,7 @@ private:
 	bool processConnectEvent(std::shared_ptr<BaseNetObj>& netObj);
 	bool processReadEvent(std::shared_ptr<BaseNetObj>& netObj);
 	bool processWriteEvent(std::shared_ptr<BaseNetObj>& netObj);
+	bool processHupEvent(std::shared_ptr<BaseNetObj>& netObj);
 #endif
 };
 

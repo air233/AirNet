@@ -5,11 +5,13 @@ bool setNonBlock(SOCKET sockfd)
 #ifdef _WIN32
 	unsigned long nonBlocking = 1;
 	int ret = ioctlsocket(sockfd, FIONBIO, &nonBlocking);
+
 	return ret == 0;
 #else
 	int flags = ::fcntl(sockfd, F_GETFL, 0);
 	flags |= O_NONBLOCK;
 	int ret = ::fcntl(sockfd, F_SETFL, flags);
+
 	return ret >= 0
 #endif
 }

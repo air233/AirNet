@@ -35,7 +35,7 @@ bool Poll::createPoll(Network* network)
 
 	epoll_event et;
 	et.data.u64 = 0;
-	et.events = EPOLLIN | EPOLLET;
+	et.events = EPOLLIN | EPOLLHUP | EPOLLET;
 	if (-1 == ::epoll_ctl(m_epollFd, EPOLL_CTL_ADD, m_pipefd[0], &et))
 	{
 		m_network->NETWARN << "[EPOLL] register stop fd fail.";
@@ -75,11 +75,11 @@ bool Poll::addPoll(std::shared_ptr<BaseNetObj>& netObj)
 
 	if (netObj->getNetStatus() == Connecting)
 	{
-		et.events = EPOLLOUT | EPOLLET;
+		et.events = EPOLLOUT | EPOLLET | EPOLLHUP;
 	}
 	else
 	{
-		et.events = EPOLLIN | EPOLLET;
+		et.events = EPOLLIN | EPOLLET | EPOLLHUP;
 	}
 
 	int ret = ::epoll_ctl(m_epollFd, EPOLL_CTL_ADD, netObj->fd(), &et);
@@ -445,7 +445,8 @@ bool Poll::processWriteEvent(std::shared_ptr<BaseNetObj>& netObj)
 					break;
 				}
 
-				PostErrorJob(netObj, err);
+				m_network->NETERROR << "[EPOLL] write to socket err:" << err;
+				//PostErrorJob(netObj, err);
 				return true;
 			}
 		}
@@ -453,6 +454,11 @@ bool Poll::processWriteEvent(std::shared_ptr<BaseNetObj>& netObj)
 	return true;
 }
 
+bool Poll::processHupEvent(std::shared_ptr<BaseNetObj>& netObj)
+{
+	std::cout << "[EPOLL] process hup event " << std::endl;
+	PostDisConnectJob(netObj, 0);
+}
 
 bool Poll::processEvent(std::vector<struct epoll_event>& events, int size)
 {
@@ -487,6 +493,11 @@ bool Poll::processEvent(std::vector<struct epoll_event>& events, int size)
 		if (events[i].events & EPOLLOUT)
 		{
 			processWriteEvent(netObj);
+		}
+
+		if (events[i].events & EPOLLHUP)
+		{
+			processHupEvent(netObj);
 		}
 	}
 

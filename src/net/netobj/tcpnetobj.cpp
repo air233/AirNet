@@ -51,9 +51,8 @@ void TCPNetObj::setLingerZero(bool on)
 	{
 		struct linger opt = { 1, 0 };
 		::setsockopt(m_fd, SOL_SOCKET, SO_LINGER, (const char*)&opt, sizeof(opt));
+		m_network->NETDEBUG << "TCP obj set lingerzero : " << on;
 	}
-
-	m_network->NETDEBUG << "TCP obj set lingerzero : " << on;
 }
 
 bool TCPNetObj::bind(InetAddress& address)
