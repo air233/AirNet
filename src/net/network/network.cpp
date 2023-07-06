@@ -149,7 +149,7 @@ void Network::setOpenSSL(bool bEnable)
 
 }
 
-uint64_t Network::linstenTCP(InetAddress& address, TCPServerConfig& config)
+uint64_t Network::linstenTCP(InetAddress& address, int32_t backlog, TCPServerConfig& config)
 {
 	if (m_mode != NetMode::TCP)
 	{
@@ -177,7 +177,7 @@ uint64_t Network::linstenTCP(InetAddress& address, TCPServerConfig& config)
 		return INVALID_NET_ID;
 	}
 
-	if (false == m_server_obj->listen())
+	if (false == m_server_obj->listen(backlog))
 	{
 		return INVALID_NET_ID;
 	}
@@ -194,11 +194,11 @@ uint64_t Network::linstenTCP(InetAddress& address, TCPServerConfig& config)
 	return m_server_net_id;
 }
 
-uint64_t Network::linstenTCP(std::string ip, uint16_t port, TCPServerConfig& config)
+uint64_t Network::linstenTCP(std::string ip, uint16_t port, int32_t backlog, TCPServerConfig& config)
 {
 	InetAddress listenaddr(ip,port);
 
-	return linstenTCP(listenaddr, config);
+	return linstenTCP(listenaddr, backlog, config);
 }
 
 void Network::rlease()

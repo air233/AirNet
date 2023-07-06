@@ -20,7 +20,7 @@ SOCKET createUDPSocket(sa_family_t family);
 
 SOCKET acceptSocket	(SOCKET sockfd, struct sockaddr* addr, int32_t addrlen, int32_t& error);
 
-int32_t listenSocket(SOCKET sockfd, int32_t& error);
+int32_t listenSocket(SOCKET sockfd, int32_t backlog, int32_t& error);
 
 int32_t connectSocket(SOCKET sockfd, struct sockaddr* addr, int32_t addrlen, int32_t& error);
 

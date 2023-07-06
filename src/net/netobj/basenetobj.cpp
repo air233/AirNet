@@ -80,6 +80,11 @@ size_t BaseNetObj::getMessageSize()
 	return 0;
 }
 
+bool BaseNetObj::doReceive(const char* data, size_t len)
+{
+	return false;
+}
+
 SOCKET BaseNetObj::fd()
 {
 	return m_fd;
@@ -116,7 +121,7 @@ bool BaseNetObj::bind(InetAddress& address)
 	return true;
 }
 
-bool BaseNetObj::listen()
+bool BaseNetObj::listen(int32_t backlog)
 {
 	m_listen = 1;
 

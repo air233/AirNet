@@ -26,6 +26,8 @@ bool Poll::createPoll(Network* network)
 		return false;
 	}
 
+	//int eventfd(unsigned int initval, int flags); 代替
+	// 
 	//stop fd:
 	if (pipe(m_pipefd) == -1)
 	{

@@ -91,8 +91,8 @@ public:
 	virtual void setOpenSSL(bool bEnable) = 0;
 
 	/*·þÎñÆ÷¿ªÆô¼àÌý*/
-	virtual uint64_t linstenTCP(InetAddress& address, TCPServerConfig& config) = 0;
-	virtual uint64_t linstenTCP(std::string ip, uint16_t port, TCPServerConfig& config) = 0;
+	virtual uint64_t linstenTCP(InetAddress& address, int32_t backlog, TCPServerConfig& config) = 0;
+	virtual uint64_t linstenTCP(std::string ip, uint16_t port, int32_t backlog, TCPServerConfig& config) = 0;
 
 	virtual uint64_t bindUDP(InetAddress& address) = 0;
 	virtual uint64_t bindUDP(std::string ip, uint16_t port) = 0;

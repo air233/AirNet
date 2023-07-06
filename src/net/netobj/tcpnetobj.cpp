@@ -69,12 +69,12 @@ bool TCPNetObj::bind(InetAddress& address)
 	return true;
 }
 
-bool TCPNetObj::listen()
+bool TCPNetObj::listen(int32_t backlog)
 {
 	//BaseNetObj::listen();
 	m_listen = 1;
 
-	if (listenSocket(m_fd, m_error) < 0)
+	if (listenSocket(m_fd, backlog, m_error) < 0)
 	{
 		m_network->NETERROR << "TCP server listen fail. error:" << m_error;
 
@@ -205,5 +205,14 @@ bool TCPNetObj::close()
 	m_fd = INVALID_SOCKET;
 	m_net_state = Disconnected;
 	m_network->NETDEBUG << "TCP obj close. net id:" << m_net_id;
+	return true;
+}
+
+bool TCPNetObj::doReceive(const char* data, size_t len)
+{
+	//·ÅÈëoutput buffer
+	std::lock_guard<std::mutex> gurad(outputMutex());
+	m_output_buf.pushCString(data, len);
+
 	return true;
 }

@@ -36,8 +36,8 @@ public:
 	virtual void setOpenSSL(bool bEnable) override;
 
 	/*¼àÌýº¯Êý*/
-	uint64_t linstenTCP(InetAddress& address, TCPServerConfig& config) override;
-	uint64_t linstenTCP(std::string ip, uint16_t port, TCPServerConfig& config) override;
+	uint64_t linstenTCP(InetAddress& address, int32_t backlog, TCPServerConfig& config) override;
+	uint64_t linstenTCP(std::string ip, uint16_t port, int32_t backlog, TCPServerConfig& config) override;
 
 	uint64_t bindUDP(InetAddress& address) override;
 	uint64_t bindUDP(std::string ip, uint16_t port) override;

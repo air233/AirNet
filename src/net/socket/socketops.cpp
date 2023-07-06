@@ -249,11 +249,12 @@ void shutdownSocketWrite(SOCKET sockfd)
 #endif
 }
 
-int32_t listenSocket(SOCKET sockfd, int32_t& error)
+int32_t listenSocket(SOCKET sockfd, int32_t backlog, int32_t& error)
 {
 	error = 0;
 
-	int ret = ::listen(sockfd, SOMAXCONN);
+	//int ret = ::listen(sockfd, SOMAXCONN);
+	int ret = ::listen(sockfd, backlog);
 
 	if (ret < 0)
 	{

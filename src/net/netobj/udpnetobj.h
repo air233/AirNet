@@ -16,6 +16,7 @@ public:
 	bool asynConnect(InetAddress& address, uint64_t outms) override;
 	bool sendTo(InetAddress& address, const char* data, size_t len) override;
 	bool close() override;
+	
 	bool getMessage(Message& msg) override;
 	size_t getMessageSize() override;
 	void pushMessage(Message& msg);

@@ -83,6 +83,14 @@ void Poll::processJob()
 				tempBuff.swap(*netObj->outputBuffer());
 			}
 
+			if (m_network->getNetMode() == (int)NetMode::TCP)
+			{
+				//TODO:需要一个分包策略 将数据发到下层
+				//size_t unpack(char* data);
+
+			}
+
+
 			/*处理数据*/
 			m_network->m_onRecv(job->m_net_id, &tempBuff);
 
@@ -174,11 +182,7 @@ void Poll::PostDisConnectJob(std::shared_ptr<BaseNetObj>& netObj, int err)
 
 void Poll::PostRecvJob(std::shared_ptr<BaseNetObj>& netObj, char* buff, int len)
 {
-	{
-		//放入output buffer
-		std::lock_guard<std::mutex> gurad(netObj->outputMutex());
-		netObj->outputBuffer()->pushCString(buff, len);
-	}
+	netObj->doReceive(buff, len);
 
 	std::shared_ptr<NetJob> job = std::make_shared<NetJob>();
 	job->m_type = JobReveive;

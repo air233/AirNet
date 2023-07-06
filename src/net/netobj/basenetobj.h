@@ -40,13 +40,15 @@ public:
 public:
 	//以下接口不暴露:
 	virtual bool bind(InetAddress& address);
-	virtual bool listen();
+	virtual bool listen(int32_t backlog);
 	virtual bool connect(InetAddress& address,uint64_t outms);
 	virtual bool asynConnect(InetAddress& address, uint64_t outms);
 	virtual bool send(const char* data, size_t len);
 	virtual bool sendTo(InetAddress& address,const char* data, size_t len);
 	virtual bool isListen();
 	virtual bool close();
+
+	virtual bool doReceive(const char* data, size_t len);
 	virtual bool getMessage(Message& msg);
 	virtual size_t getMessageSize();
 

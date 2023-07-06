@@ -85,7 +85,7 @@ int test_TCPServer()
 	std::cout << "connect id :" << net_id << std::endl;
 
 	TCPConfig config;
-	auto net_id2 = server.m_network->linstenTCP("0.0.0.0", 8888, config);
+	auto net_id2 = server.m_network->linstenTCP("0.0.0.0", 8888, SOMAXCONN, config);
 	std::cout << "listen id :" << net_id2 << std::endl;
 
 	while (true)
